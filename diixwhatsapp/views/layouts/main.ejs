@@ -9,17 +9,17 @@
   <link rel="stylesheet" href="/css/forms.css">
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
-  <%- include('partials/navbar') %>
+  <%- include('../partials/navbar') %>
   
   <div class="container-fluid">
     <div class="row">
       <% if (typeof showSidebar !== 'undefined' && showSidebar) { %>
-        <%- include('partials/sidebar', { user: typeof user !== 'undefined' ? user : null, currentPage: typeof currentPage !== 'undefined' ? currentPage : '' }) %>
+        <%- include('../partials/sidebar', { user: typeof user !== 'undefined' ? user : null, currentPage: typeof currentPage !== 'undefined' ? currentPage : '' }) %>
       <% } %>
       
       <main class="<%= typeof showSidebar !== 'undefined' && showSidebar ? 'main-content' : 'main-content-full' %>">
         <div class="content-wrapper">
-          <%- include('partials/flash.ejs') %>
+          <%- include('../partials/flash.ejs') %>
           
           <div class="page-header">
             <h1><%= typeof title !== 'undefined' ? title : '' %></h1>
