@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MASTER
+  TENANT_ADMIN
+  TENANT_USER
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  email       String?
+  phone       String?
+  document    String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  logo        String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  products    Product[]
+  clients     Client[]
+  services    Service[]
+  promotions  Promotion[]
+  auditLogs   AuditLog[]
+
+  @@index([slug])
+  @@index([active])
+}
+
+model User {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  username    String   @unique
+  email       String   @unique
+  passwordHash String
+  name        String?
+  role        Role     @default(TENANT_USER)
+  active      Boolean  @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  auditLogs   AuditLog[]
+
+  @@index([username])
+  @@index([email])
+  @@index([tenantId])
+  @@index([role])
+  @@index([active])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?
+  sku         String?
+  price       Decimal  @db.Decimal(10, 2)
+  costPrice   Decimal? @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  image       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([slug])
+  @@index([active])
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  email       String?
+  phone       String?
+  document    String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  notes       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([active])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  duration    Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([active])
+}
+
+model Promotion {
+  id           String       @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String?
+  discountType DiscountType @default(PERCENTAGE)
+  discountValue Decimal     @db.Decimal(10, 2)
+  startDate    DateTime
+  endDate      DateTime
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([active])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  tenantId  String?
+  action    String
+  entity    String?
+  entityId  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([createdAt])
+}

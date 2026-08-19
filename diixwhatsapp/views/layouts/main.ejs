@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>DiixWhatsApp</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+</head>
+<body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
+  <%- include('partials/navbar') %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <% if (typeof showSidebar !== 'undefined' && showSidebar) { %>
+        <%- include('partials/sidebar', { user: typeof user !== 'undefined' ? user : null }) %>
+      <% } %>
+      
+      <main class="<%= typeof showSidebar !== 'undefined' && showSidebar ? 'main-content' : 'main-content-full' %>">
+        <div class="content-wrapper">
+          <%- include('partials/flash') %>
+          
+          <div class="page-header">
+            <h1><%= typeof title !== 'undefined' ? title : '' %></h1>
+          </div>
+          
+          <%- body %>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <script src="/js/app.js"></script>
+  <%- include('partials/csrf') %>
+</body>
+</html>
