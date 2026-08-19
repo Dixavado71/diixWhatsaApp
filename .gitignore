@@ -2,27 +2,37 @@
 # Dependencies
 node_modules/
 
-# Tests
-tests/**/*.test.js
-tests/**/*.spec.js
-
-# Logs
-*.log
-
 # Environment
 .env
 .env.local
 .env.*
 
+# Logs and temp files
+*.log
+*.tmp
+
 # Editors
 .vscode/
 .idea/
 
-# OS
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
 .DS_Store
-Thumbs.db
-
-# Coverage
-coverage/
-.nyc_output/
 ```
