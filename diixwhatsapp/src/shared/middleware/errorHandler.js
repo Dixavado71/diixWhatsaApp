@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { logger } from '../infrastructure/database/prismaClient.js';
+import { logger } from '../../infrastructure/database/prismaClient.js';
 import { config } from '../../config/env.js';
 
 /**
