@@ -1,4 +1,4 @@
-import { prisma } from '../config/database.js';
+import { prisma } from '../infrastructure/database/prismaClient.js';
 
 /**
  * Product Repository - Data access layer for Product entity

@@ -1,12 +1,12 @@
 import { Prisma } from '@prisma/client';
-import { appLogger } from '../utils/logger.js';
+import { logger } from '../infrastructure/database/prismaClient.js';
 
 /**
  * Error Handler Middleware
  */
 export function errorHandler(err, req, res, next) {
   // Log the error
-  appLogger.error('Error occurred', {
+  logger.error('Error occurred', {
     message: err.message,
     stack: err.stack,
     url: req.url,
@@ -38,7 +38,7 @@ export function errorHandler(err, req, res, next) {
           details: isDev ? err.message : undefined
         });
       default:
-        appLogger.db.error('Prisma error', err.code, err);
+        logger.db.error('Prisma error', err.code, err);
         break;
     }
   }

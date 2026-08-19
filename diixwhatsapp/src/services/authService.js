@@ -1,7 +1,7 @@
 import { userRepository } from '../repositories/userRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
-import { comparePassword } from '../utils/password.js';
-import { appLogger } from '../utils/logger.js';
+import { comparePassword } from '../shared/helpers/password.js';
+import { logger } from '../infrastructure/database/prismaClient.js';
 
 /**
  * Auth Service - Business logic for authentication
@@ -24,19 +24,19 @@ export const authService = {
     }
 
     if (!user) {
-      appLogger.auth.failed(identifier, 'USER_NOT_FOUND', ip);
+      logger.auth.failed(identifier, 'USER_NOT_FOUND', ip);
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
     // Check if user is active
     if (!user.active) {
-      appLogger.auth.failed(identifier, 'USER_INACTIVE', ip);
+      logger.auth.failed(identifier, 'USER_INACTIVE', ip);
       return { success: false, error: 'Usuário está inativo' };
     }
 
     // Check if tenant is active (for tenant users)
     if (user.tenantId && user.tenant && !user.tenant.active) {
-      appLogger.auth.failed(identifier, 'TENANT_INACTIVE', ip);
+      logger.auth.failed(identifier, 'TENANT_INACTIVE', ip);
       return { success: false, error: 'Loja está inativa' };
     }
 
@@ -44,7 +44,7 @@ export const authService = {
     const isValidPassword = await comparePassword(password, user.passwordHash);
 
     if (!isValidPassword) {
-      appLogger.auth.failed(identifier, 'INVALID_PASSWORD', ip);
+      logger.auth.failed(identifier, 'INVALID_PASSWORD', ip);
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
@@ -53,7 +53,7 @@ export const authService = {
 
     // Log successful login
     await auditLogRepository.logAuth(user.id, 'LOGIN', ip, userAgent);
-    appLogger.auth.login(identifier, true, ip);
+    logger.auth.login(identifier, true, ip);
 
     // Return user data without sensitive information
     return {
@@ -84,7 +84,7 @@ export const authService = {
     const user = await userRepository.findById(userId);
     if (user) {
       await auditLogRepository.logAuth(userId, 'LOGOUT', ip, userAgent);
-      appLogger.auth.logout(user.username, ip);
+      logger.auth.logout(user.username, ip);
     }
   }
 };

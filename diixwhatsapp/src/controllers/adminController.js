@@ -7,7 +7,7 @@ import { promotionRepository } from '../repositories/promotionRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { createTenantSchema, updateTenantSchema } from '../validators/tenantValidator.js';
 import { createUserSchema, updateUserSchema } from '../validators/authValidator.js';
-import { hashPassword } from '../utils/password.js';
+import { hashPassword } from '../shared/helpers/password.js';
 
 /**
  * Admin Controller - Handle Master admin operations
