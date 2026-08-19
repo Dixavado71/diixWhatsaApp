@@ -162,7 +162,7 @@ app.get('/api-docs', (req, res) => {
           },
           'GET /health/db': {
             description: 'Database connection health check',
-            response: '{ status: "ok", database: "connected" }' or error object
+            response: '{ status: "ok", database: "connected" } or error object'
           },
           'GET /login': {
             description: 'Show login page (for browser clients)',
