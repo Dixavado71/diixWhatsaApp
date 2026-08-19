@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { clientController } from '../controllers/clientController.js';
-import { requireTenant } from '../../../../shared/middleware/auth.js';
+import { requireTenant } from '../../../shared/middleware/auth.js';
 
 const router = Router();
 

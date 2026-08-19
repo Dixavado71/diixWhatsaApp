@@ -1,13 +1,9 @@
 import { productRepository } from '../repositories/productRepository.js';
-import { serviceRepository } from '../repositories/serviceRepository.js';
-import { promotionRepository } from '../repositories/promotionRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { generateSlug } from '../shared/helpers/slug.js';
 import { hashPassword } from '../shared/helpers/password.js';
 import { createProductSchema, updateProductSchema } from '../validators/productValidator.js';
-import { createServiceSchema, updateServiceSchema } from '../validators/serviceValidator.js';
-import { createPromotionSchema, updatePromotionSchema } from '../validators/promotionValidator.js';
 import { createTenantUserSchema, updateTenantUserSchema } from '../validators/authValidator.js';
 
 /**
@@ -21,10 +17,9 @@ export const tenantController = {
     try {
       const tenantId = req.session.user.tenantId;
 
-      // Get counts for this tenant only - clients count will be handled by the module
-      const [productsCount, servicesCount, promotionsCount, usersCount] = await Promise.all([
+      // Get counts for this tenant only - clients and services counts handled by their modules
+      const [productsCount, promotionsCount, usersCount] = await Promise.all([
         productRepository.countByTenant(tenantId),
-        serviceRepository.countByTenant(tenantId),
         promotionRepository.countByTenant(tenantId),
         userRepository.count({ tenantId })
       ]);
@@ -37,7 +32,7 @@ export const tenantController = {
         stats: {
           products: productsCount,
           clients: 0, // Clients count not available in legacy controller
-          services: servicesCount,
+          services: 0, // Services count now handled by modular controller
           promotions: promotionsCount,
           users: usersCount
         },
@@ -225,154 +220,6 @@ export const tenantController = {
    * These functions are now handled by the modularized clients module
    */
 
-  /**
-   * Services CRUD
-   */
-  listServices: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const services = await serviceRepository.findAllByTenant(tenantId);
-
-      res.render('tenant/services/index', {
-        title: 'Serviços',
-        services
-      });
-    } catch (error) {
-      console.error('List services error:', error);
-      res.render('tenant/services/index', {
-        title: 'Serviços',
-        services: [],
-        error: 'Erro ao carregar serviços'
-      });
-    }
-  },
-
-  showNewService: (req, res) => {
-    res.render('tenant/services/new', {
-      title: 'Novo Serviço',
-      service: null,
-      error: null
-    });
-  },
-
-  createService: async (req, res) => {
-    try {
-      const validatedData = createServiceSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      validatedData.tenantId = tenantId;
-
-      const service = await serviceRepository.create(validatedData);
-
-      // Log creation
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'CREATE',
-        'SERVICE',
-        service.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('tenant/services/new', {
-          title: 'Novo Serviço',
-          service: req.body,
-          error: errorMessage
-        });
-      }
-
-      console.error('Create service error:', error);
-      res.render('tenant/services/new', {
-        title: 'Novo Serviço',
-        service: req.body,
-        error: error.message || 'Erro ao criar serviço'
-      });
-    }
-  },
-
-  showEditService: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const service = await serviceRepository.findByIdAndTenant(req.params.id, tenantId);
-
-      if (!service) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Serviço não encontrado'
-        });
-      }
-
-      res.render('tenant/services/edit', {
-        title: 'Editar Serviço',
-        service
-      });
-    } catch (error) {
-      console.error('Show edit service error:', error);
-      res.redirect('/tenant/services');
-    }
-  },
-
-  updateService: async (req, res) => {
-    try {
-      const validatedData = updateServiceSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      const service = await serviceRepository.update(req.params.id, tenantId, validatedData);
-
-      if (!service) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Serviço não encontrado'
-        });
-      }
-
-      // Log update
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'UPDATE',
-        'SERVICE',
-        service.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      console.error('Update service error:', error);
-      res.render('tenant/services/edit', {
-        title: 'Editar Serviço',
-        service: await serviceRepository.findByIdAndTenant(req.params.id, req.session.user.tenantId),
-        error: error.message || 'Erro ao atualizar serviço'
-      });
-    }
-  },
-
-  deleteService: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-
-      await serviceRepository.delete(req.params.id, tenantId);
-
-      // Log deletion
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'DELETE',
-        'SERVICE',
-        req.params.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      console.error('Delete service error:', error);
-      res.redirect('/tenant/services');
-    }
-  },
 
   /**
    * Promotions CRUD

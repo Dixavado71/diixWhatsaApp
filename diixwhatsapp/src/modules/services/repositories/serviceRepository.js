@@ -1,15 +1,15 @@
-import { prisma } from '../infrastructure/database/prismaClient.js';
+import { prisma } from '../../../infrastructure/database/prismaClient.js';
 
 /**
- * Client Repository - Data access layer for Client entity
+ * Service Repository - Data access layer for Service entity
  * IMPORTANT: All queries must filter by tenantId for data isolation
  */
-export const clientRepository = {
+export const serviceRepository = {
   /**
-   * Find all clients for a specific tenant
+   * Find all services for a specific tenant
    */
   async findAllByTenant(tenantId, filters = {}) {
-    return prisma.client.findMany({
+    return prisma.service.findMany({
       where: {
         tenantId,
         ...(filters.active !== undefined && { active: filters.active })
@@ -21,10 +21,10 @@ export const clientRepository = {
   },
 
   /**
-   * Find a client by ID for a specific tenant
+   * Find a service by ID for a specific tenant
    */
   async findByIdAndTenant(id, tenantId) {
-    return prisma.client.findFirst({
+    return prisma.service.findFirst({
       where: {
         id,
         tenantId
@@ -33,57 +33,57 @@ export const clientRepository = {
   },
 
   /**
-   * Create a new client
+   * Create a new service
    */
   async create(data) {
-    return prisma.client.create({
+    return prisma.service.create({
       data
     });
   },
 
   /**
-   * Update a client (with tenant isolation check)
+   * Update a service (with tenant isolation check)
    */
   async update(id, tenantId, data) {
     const existing = await this.findByIdAndTenant(id, tenantId);
     if (!existing) return null;
 
-    return prisma.client.update({
+    return prisma.service.update({
       where: { id },
       data
     });
   },
 
   /**
-   * Delete a client (with tenant isolation check)
+   * Delete a service (with tenant isolation check)
    */
   async delete(id, tenantId) {
     const existing = await this.findByIdAndTenant(id, tenantId);
     if (!existing) return null;
 
-    return prisma.client.delete({
+    return prisma.service.delete({
       where: { id }
     });
   },
 
   /**
-   * Toggle client active status
+   * Toggle service active status
    */
   async toggleActive(id, tenantId) {
-    const client = await this.findByIdAndTenant(id, tenantId);
-    if (!client) return null;
+    const service = await this.findByIdAndTenant(id, tenantId);
+    if (!service) return null;
 
-    return prisma.client.update({
+    return prisma.service.update({
       where: { id },
-      data: { active: !client.active }
+      data: { active: !service.active }
     });
   },
 
   /**
-   * Count clients for a tenant
+   * Count services for a tenant
    */
   async countByTenant(tenantId, filters = {}) {
-    return prisma.client.count({
+    return prisma.service.count({
       where: {
         tenantId,
         ...filters
@@ -92,17 +92,15 @@ export const clientRepository = {
   },
 
   /**
-   * Search clients within a tenant
+   * Search services within a tenant
    */
   async searchByTenant(tenantId, searchTerm) {
-    return prisma.client.findMany({
+    return prisma.service.findMany({
       where: {
         tenantId,
         OR: [
           { name: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-          { phone: { contains: searchTerm, mode: 'insensitive' } },
-          { document: { contains: searchTerm, mode: 'insensitive' } }
+          { description: { contains: searchTerm, mode: 'insensitive' } }
         ]
       },
       orderBy: {
@@ -111,3 +109,4 @@ export const clientRepository = {
     });
   }
 };
+
