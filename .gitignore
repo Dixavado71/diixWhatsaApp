@@ -7,6 +7,13 @@ node_modules/
 .env.local
 *.env.*
 
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
 # Python cache
 __pycache__/
 *.pyc
@@ -16,28 +23,23 @@ __pycache__/
 # Build outputs
 dist/
 build/
-*.min.js
-*.bundle.js
+target/
 
-# Logs
-*.log
-
-# IDE files
-.vscode/
-.idea/
+# Temporary files
+*.tmp
 *.swp
 *.swo
 
-# OS files
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Temporary files
-*.tmp
-*.temp
+# Testing
+.mypy_cache/
+.pytest_cache/
 ```
