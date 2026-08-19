@@ -21,12 +21,13 @@ export const adminController = {
       const stats = await tenantService.getDashboardStats();
       
       // Get recent tenants
-      const tenants = await tenantService.getAllTenants({});
-      const recentTenants = tenants.slice(0, 10);
+      const allTenants = await tenantService.getAllTenants({});
+      const recentTenants = allTenants.slice(0, 10);
 
       res.render('admin/dashboard', {
         title: 'Dashboard Admin',
         stats,
+        tenants: allTenants,
         recentTenants
       });
     } catch (error) {
@@ -34,6 +35,7 @@ export const adminController = {
       res.render('admin/dashboard', {
         title: 'Dashboard Admin',
         stats: { total: 0, active: 0, inactive: 0, totalUsers: 0 },
+        tenants: [],
         recentTenants: [],
         error: 'Erro ao carregar dashboard'
       });
