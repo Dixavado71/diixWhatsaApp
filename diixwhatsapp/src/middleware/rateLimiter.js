@@ -1,4 +1,4 @@
-import rateLimit from 'rate-limit-flexible';
+import rateLimit from 'express-rate-limit';
 
 /**
  * Rate limiter for login attempts

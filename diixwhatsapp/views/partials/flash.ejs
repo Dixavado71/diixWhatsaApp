@@ -1,0 +1,11 @@
+<% if (typeof success !== 'undefined' && success) { %>
+  <div class="flash-message flash-success">
+    <%= success %>
+  </div>
+<% } %>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="flash-message flash-error">
+    <%= error %>
+  </div>
+<% } %>

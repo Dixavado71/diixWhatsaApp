@@ -1,0 +1,18 @@
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <% if (typeof user !== 'undefined' && user && user.role === 'MASTER') { %>
+      <a href="/admin/dashboard" class="<%= typeof currentPage !== 'undefined' && currentPage === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+      <a href="/admin/tenants" class="<%= typeof currentPage !== 'undefined' && currentPage === 'tenants' ? 'active' : '' %>">Lojas</a>
+      <a href="/admin/users" class="<%= typeof currentPage !== 'undefined' && currentPage === 'users' ? 'active' : '' %>">Usuários</a>
+    <% } else if (typeof user !== 'undefined' && user && (user.role === 'TENANT_ADMIN' || user.role === 'TENANT_USER')) { %>
+      <a href="/tenant/dashboard" class="<%= typeof currentPage !== 'undefined' && currentPage === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+      <a href="/tenant/products" class="<%= typeof currentPage !== 'undefined' && currentPage === 'products' ? 'active' : '' %>">Produtos</a>
+      <a href="/tenant/clients" class="<%= typeof currentPage !== 'undefined' && currentPage === 'clients' ? 'active' : '' %>">Clientes</a>
+      <a href="/tenant/services" class="<%= typeof currentPage !== 'undefined' && currentPage === 'services' ? 'active' : '' %>">Serviços</a>
+      <a href="/tenant/promotions" class="<%= typeof currentPage !== 'undefined' && currentPage === 'promotions' ? 'active' : '' %>">Promoções</a>
+      <% if (user.role === 'TENANT_ADMIN') { %>
+        <a href="/tenant/users" class="<%= typeof currentPage !== 'undefined' && currentPage === 'users' ? 'active' : '' %>">Usuários</a>
+      <% } %>
+    <% } %>
+  </nav>
+</aside>
