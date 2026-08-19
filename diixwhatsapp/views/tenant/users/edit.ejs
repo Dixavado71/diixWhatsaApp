@@ -1,0 +1,90 @@
+<%- include('../../layouts/main.ejs', { title: 'Editar Usuário', user: locals.user, activeSection: 'users' }) -%>
+
+<div class="page-header">
+    <div>
+        <h1><i class="icon-edit"></i> Editar Usuário</h1>
+        <p>Atualize as informações do usuário</p>
+    </div>
+    <a href="/tenant/users" class="btn btn-secondary">
+        <i class="icon-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<%- include('../../partials/flash.ejs', { messages: locals.messages }) -%>
+
+<div class="card">
+    <div class="card-body">
+        <form action="/tenant/users/<%= userToEdit.id %>" method="POST" class="form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="username" class="form-label required">Nome de Usuário</label>
+                    <input type="text" id="username" name="username" class="form-control" required autofocus value="<%= userToEdit.username %>">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="name" class="form-label required">Nome Completo</label>
+                    <input type="text" id="name" name="name" class="form-control" required value="<%= userToEdit.name %>">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="email" class="form-label required">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" required value="<%= userToEdit.email %>">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="role" class="form-label required">Perfil de Acesso</label>
+                    <select id="role" name="role" class="form-control" required <%= userToEdit.role === 'MASTER' ? 'disabled' : '' %>>
+                        <option value="TENANT_USER" <%= userToEdit.role === 'TENANT_USER' ? 'selected' : '' %>>Usuário Operacional</option>
+                        <option value="TENANT_ADMIN" <%= userToEdit.role === 'TENANT_ADMIN' ? 'selected' : '' %>>Administrador da Loja</option>
+                    </select>
+                    <% if (userToEdit.role === 'MASTER') { %>
+                        <small class="text-muted">Perfil Master não pode ser alterado</small>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Nova Senha (deixe em branco para manter a atual)</label>
+                <input type="password" id="password" name="password" class="form-control" minlength="6" placeholder="Digite para alterar a senha">
+            </div>
+
+            <div class="form-group">
+                <label class="form-checkbox">
+                    <input type="checkbox" name="active" <%= userToEdit.active ? 'checked' : '' %> <%= userToEdit.role === 'MASTER' ? 'disabled' : '' %>>
+                    <span class="checkmark"></span>
+                    Usuário Ativo
+                    <% if (userToEdit.role === 'MASTER') { %>
+                        <small class="text-muted"> (Usuário Master não pode ser desativado)</small>
+                    <% } %>
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="icon-check"></i> Salvar Alterações
+                </button>
+                <a href="/tenant/users" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Habilitar campos se for Master
+const roleSelect = document.getElementById('role');
+if (roleSelect && !roleSelect.disabled) {
+    roleSelect.addEventListener('change', function() {
+        const checkbox = document.querySelector('input[name="active"]');
+        if (this.value === 'MASTER' && checkbox) {
+            checkbox.checked = true;
+            checkbox.disabled = true;
+        } else if (checkbox) {
+            checkbox.disabled = false;
+        }
+    });
+}
+</script>
+
+<%- include('../../partials/footer.ejs') -%>
