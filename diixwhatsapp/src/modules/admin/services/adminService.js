@@ -2,11 +2,11 @@
  * Admin Service - Business logic layer for admin operations
  * Orchestrates calls to other domain modules through their public APIs
  */
-import { tenantService } from '../tenants/services/tenantService.js';
-import { userService } from '../../modules/users/services/userService.js';
-import { auditLogRepository } from '../../repositories/auditLogRepository.js';
-import { adminRepository } from './repositories/adminRepository.js';
-import { hashPassword } from '../../shared/helpers/password.js';
+import { tenantService } from '../../tenants/services/tenantService.js';
+import { userService } from '../../users/services/userService.js';
+import { auditLogRepository } from '../../../repositories/auditLogRepository.js';
+import { adminRepository } from '../repositories/adminRepository.js';
+import { hashPassword } from '../../../shared/helpers/password.js';
 
 export const adminService = {
   /**

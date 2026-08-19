@@ -2,7 +2,7 @@
  * Admin Repository - Data persistence layer for admin operations
  * Uses shared Prisma instance for database access
  */
-import { prisma } from '../../infrastructure/database/prismaClient.js';
+import { prisma } from '../../../infrastructure/database/prismaClient.js';
 
 export const adminRepository = {
   /**
