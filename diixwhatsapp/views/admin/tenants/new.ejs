@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <%- include('../../partials/head', { title: 'Nova Loja' }) %>
+</head>
+<body class="admin-tenant-form">
+  <%- include('../../partials/navbar', { user: user, area: 'admin' }) %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../../partials/sidebar', { area: 'admin' }) %>
+      
+      <main class="col-md-10 ms-sm-auto col-lg-12 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Nova Loja</h1>
+          <a href="/admin/tenants" class="btn btn-secondary">Voltar</a>
+        </div>
+        
+        <%- include('../../partials/flash') %>
+        
+        <div class="card">
+          <div class="card-body">
+            <form action="/admin/tenants" method="POST">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="name" class="form-label">Nome da Loja *</label>
+                  <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="slug" class="form-label">Slug *</label>
+                  <input type="text" class="form-control" id="slug" name="slug" required>
+                  <small class="text-muted">Identificador único (ex: loja-a)</small>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="description" class="form-label">Descrição</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="email" class="form-label">Email</label>
+                  <input type="email" class="form-control" id="email" name="email">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="phone" class="form-label">Telefone</label>
+                  <input type="text" class="form-control" id="phone" name="phone">
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="document" class="form-label">Documento (CNPJ)</label>
+                <input type="text" class="form-control" id="document" name="document">
+              </div>
+              
+              <div class="mb-3">
+                <label for="address" class="form-label">Endereço</label>
+                <input type="text" class="form-control" id="address" name="address">
+              </div>
+              
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="city" class="form-label">Cidade</label>
+                  <input type="text" class="form-control" id="city" name="city">
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                  <label for="state" class="form-label">Estado</label>
+                  <input type="text" class="form-control" id="state" name="state" maxlength="2">
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                  <label for="zipCode" class="form-label">CEP</label>
+                  <input type="text" class="form-control" id="zipCode" name="zipCode">
+                </div>
+              </div>
+              
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Criar Loja</button>
+                <a href="/admin/tenants" class="btn btn-secondary">Cancelar</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <%- include('../../partials/footer') %>
+</body>
+</html>

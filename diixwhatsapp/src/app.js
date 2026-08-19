@@ -1,8 +1,8 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import helmet from 'helmet';
-import csrf from 'csurf';
 import { config } from './config/env.js';
 import { sessionConfig } from './config/session.js';
 import authRoutes from './routes/auth.js';
@@ -44,19 +44,38 @@ app.use(sessionConfig);
 app.use(generalLimiter);
 
 // CSRF protection (exclude login routes)
-const csrfProtection = csrf({ cookie: { httpOnly: true, sameSite: 'strict', secure: config.nodeEnv === 'production' } });
-app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/admin/login' || req.path === '/tenant/login') {
+// Note: csurf is deprecated, implementing basic CSRF token validation manually
+const csrfProtection = (req, res, next) => {
+  // Skip CSRF for GET requests and login pages
+  if (req.method === 'GET' || 
+      req.path === '/login' || 
+      req.path === '/admin/login' || 
+      req.path === '/tenant/login') {
     return next();
   }
-  csrfProtection(req, res, next);
-});
+  
+  // Generate CSRF token if not present
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+  }
+  
+  // Make token available to views
+  res.locals.csrfToken = req.session.csrfToken;
+  
+  // Validate CSRF token on state-changing requests
+  const token = req.body._csrf || req.headers['x-csrf-token'];
+  if (token && token !== req.session.csrfToken) {
+    return res.status(403).json({ error: 'CSRF token validation failed' });
+  }
+  
+  next();
+};
+
+app.use(csrfProtection);
 
 // Make CSRF token available to all views
 app.use((req, res, next) => {
-  if (req.csrfToken) {
-    res.locals.csrfToken = req.csrfToken();
-  }
+  res.locals.csrfToken = req.session.csrfToken || '';
   next();
 });
 
