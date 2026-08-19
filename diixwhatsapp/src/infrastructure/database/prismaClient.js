@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import pino from 'pino';
+import { config } from '../../config/env.js';
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: config.logLevel,
   transport: {
     target: 'pino-pretty',
     options: {

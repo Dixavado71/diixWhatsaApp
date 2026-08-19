@@ -7,15 +7,15 @@ import { sessionConfig } from './config/session.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import tenantRoutes from './routes/tenant.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { optionalAuth } from './middleware/auth.js';
-import { generalLimiter } from './middleware/rateLimiter.js';
+import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
+import { optionalAuth } from './shared/middleware/auth.js';
+import { generalLimiter } from './shared/middleware/rateLimiter.js';
 
 const app = express();
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: config.frontendUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
@@ -144,7 +144,7 @@ app.get('/health', (req, res) => {
 
 app.get('/health/db', async (req, res) => {
   try {
-    const { prisma } = await import('./config/database.js');
+    const { prisma } = await import('./infrastructure/database/prismaClient.js');
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', database: 'connected' });
   } catch (error) {
@@ -159,7 +159,7 @@ app.get('/api-docs', (req, res) => {
       name: 'DiixWhatsApp API',
       version: '1.0.0',
       description: 'Multi-tenant WhatsApp business management backend API',
-      baseUrl: process.env.API_URL || 'http://localhost:3000',
+      baseUrl: config.apiUrl,
       authentication: {
         type: 'Session-based',
         description: 'Use POST /login with username and password to obtain a session cookie. Include the session cookie in subsequent requests.',
