@@ -7,18 +7,7 @@ node_modules/
 .env.local
 *.env.*
 
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.swp
-
-# IDE specific
-.vscode/
-.idea/
-
-# Python specific
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -27,14 +16,28 @@ __pycache__/
 # Build outputs
 dist/
 build/
-target/
+*.min.js
+*.bundle.js
 
-# Coverage reports
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage
 coverage/
 htmlcov/
 .coverage
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Temporary files
+*.tmp
+*.temp
 ```

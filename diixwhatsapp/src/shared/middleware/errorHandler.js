@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { logger } from '../infrastructure/database/prismaClient.js';
+import { config } from '../../config/env.js';
 
 /**
  * Error Handler Middleware
@@ -14,7 +15,7 @@ export function errorHandler(err, req, res, next) {
   });
 
   // Don't expose internal errors in production
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = config.nodeEnv === 'development';
 
   // Handle Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
