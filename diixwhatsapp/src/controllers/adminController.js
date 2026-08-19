@@ -1,7 +1,6 @@
 import { tenantService } from '../services/tenantService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { productRepository } from '../repositories/productRepository.js';
-import { clientRepository } from '../repositories/clientRepository.js';
 import { serviceRepository } from '../repositories/serviceRepository.js';
 import { promotionRepository } from '../repositories/promotionRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';

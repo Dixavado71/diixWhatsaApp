@@ -8,7 +8,7 @@
  * - Return response
  */
 import { clientService } from '../services/clientService.js';
-import { createClientSchema, updateClientSchema } from '../../validators/clientValidator.js';
+import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
 
 export const clientController = {
   /**
