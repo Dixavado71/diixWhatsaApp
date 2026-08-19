@@ -26,9 +26,22 @@ app.use(helmet({
 // Trust proxy for proper IP detection behind reverse proxies
 app.set('trust proxy', 1);
 
-// View engine setup
+// View engine setup with custom settings for EJS includes
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../views'));
+const viewsPath = path.join(__dirname, '../views');
+app.set('views', viewsPath);
+
+// Custom EJS configuration to support relative includes from views directory
+import('ejs').then(ejsModule => {
+  app.engine('ejs', (filePath, options, callback) => {
+    options.root = viewsPath;
+    // ejsModule.default is the actual EJS module when imported as ESM
+    const ejs = ejsModule.default || ejsModule;
+    ejs.renderFile(filePath, options, callback);
+  });
+}).catch(err => {
+  console.error('Failed to load EJS:', err);
+});
 
 // Static files
 app.use(express.static(path.join(__dirname, '../public')));

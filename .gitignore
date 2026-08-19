@@ -5,26 +5,24 @@ node_modules/
 # Environment variables
 .env
 .env.local
-*.env.*
+.env.*
 
 # Logs
 *.log
 
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
+# Temporary files
+*.tmp
 
-# IDE files
+# Editor/IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# OS files
-.DS_Store
-Thumbs.db
+# Build outputs
+dist/
+build/
+target/
 
 # Python
 __pycache__/
@@ -32,36 +30,23 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
 *.so
+.Python
 *.egg-info/
 .eggs/
-dist/
-build/
-*.egg
-.tox/
-.nox/
-.coverage*
+.coverage
+htmlcov/
+.coverage.*
+.nosetests
 .pytest_cache/
 .mypy_cache/
-.hypothesis/
 
-# Node.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-.cache/
-.nyc_output/
-coverage/
-
-# Build outputs
-dist/
-build/
-target/
-*.min.js
-*.min.css
-
-# Compression
+# Compressed files
 *.zip
 *.gz
 *.tar
@@ -84,4 +69,8 @@ target/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
+# System files
+.DS_Store
+Thumbs.db
 ```
