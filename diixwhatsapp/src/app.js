@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import helmet from 'helmet';
+import cors from 'cors';
 import { config } from './config/env.js';
 import { sessionConfig } from './config/session.js';
 import authRoutes from './routes/auth.js';
@@ -11,6 +12,15 @@ import { optionalAuth } from './middleware/auth.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 const app = express();
+
+// CORS Configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+};
+app.use(cors(corsOptions));
 
 // Security headers
 app.use(helmet({
