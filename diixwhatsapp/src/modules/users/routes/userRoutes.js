@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { userController } from '../controllers/userController.js';
-import { ensureAuthenticated, requireMaster } from '../../../shared/middleware/auth.js';
+import { requireAuth, requireMaster } from '../../../shared/middleware/auth.js';
 
 const router = Router();
 
 // All user routes require authentication and MASTER role
-router.use(ensureAuthenticated);
+router.use(requireAuth);
 router.use(requireMaster);
 
 // User management routes
