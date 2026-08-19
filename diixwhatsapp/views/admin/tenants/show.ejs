@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <%- include('../../partials/head', { title: 'Detalhes da Loja' }) %>
+</head>
+<body class="admin-tenant-show">
+  <%- include('../../partials/navbar', { user: user, area: 'admin' }) %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../../partials/sidebar', { area: 'admin' }) %>
+      
+      <main class="col-md-10 ms-sm-auto col-lg-12 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2"><%= tenant.name %></h1>
+          <div class="btn-group">
+            <a href="/admin/tenants/<%= tenant.id %>/edit" class="btn btn-primary">Editar</a>
+            <a href="/admin/tenants" class="btn btn-secondary">Voltar</a>
+          </div>
+        </div>
+        
+        <%- include('../../partials/flash') %>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Informações da Loja</h5>
+              </div>
+              <div class="card-body">
+                <table class="table table-sm">
+                  <tr>
+                    <th width="40%">Nome:</th>
+                    <td><%= tenant.name %></td>
+                  </tr>
+                  <tr>
+                    <th>Slug:</th>
+                    <td><code><%= tenant.slug %></code></td>
+                  </tr>
+                  <tr>
+                    <th>Status:</th>
+                    <td>
+                      <% if (tenant.active) { %>
+                        <span class="badge bg-success">Ativa</span>
+                      <% } else { %>
+                        <span class="badge bg-danger">Inativa</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Descrição:</th>
+                    <td><%= tenant.description || 'Não informada' %></td>
+                  </tr>
+                  <tr>
+                    <th>Email:</th>
+                    <td><%= tenant.email || 'Não informado' %></td>
+                  </tr>
+                  <tr>
+                    <th>Telefone:</th>
+                    <td><%= tenant.phone || 'Não informado' %></td>
+                  </tr>
+                  <tr>
+                    <th>Documento:</th>
+                    <td><%= tenant.document || 'Não informado' %></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Endereço</h5>
+              </div>
+              <div class="card-body">
+                <table class="table table-sm">
+                  <tr>
+                    <th width="40%">Endereço:</th>
+                    <td><%= tenant.address || 'Não informado' %></td>
+                  </tr>
+                  <tr>
+                    <th>Cidade:</th>
+                    <td><%= tenant.city || 'Não informada' %></td>
+                  </tr>
+                  <tr>
+                    <th>Estado:</th>
+                    <td><%= tenant.state || 'Não informado' %></td>
+                  </tr>
+                  <tr>
+                    <th>CEP:</th>
+                    <td><%= tenant.zipCode || 'Não informado' %></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Estatísticas</h5>
+              </div>
+              <div class="card-body">
+                <table class="table table-sm">
+                  <tr>
+                    <th width="40%">Usuários:</th>
+                    <td><%= stats.users || 0 %></td>
+                  </tr>
+                  <tr>
+                    <th>Produtos:</th>
+                    <td><%= stats.products || 0 %></td>
+                  </tr>
+                  <tr>
+                    <th>Clientes:</th>
+                    <td><%= stats.clients || 0 %></td>
+                  </tr>
+                  <tr>
+                    <th>Serviços:</th>
+                    <td><%= stats.services || 0 %></td>
+                  </tr>
+                  <tr>
+                    <th>Promoções:</th>
+                    <td><%= stats.promotions || 0 %></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Ações</h5>
+          </div>
+          <div class="card-body">
+            <form action="/admin/tenants/<%= tenant.id %>/toggle" method="POST" style="display:inline;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn btn-<%= tenant.active ? 'warning' : 'success' %>">
+                <%= tenant.active ? 'Desativar Loja' : 'Ativar Loja' %>
+              </button>
+            </form>
+            
+            <form action="/admin/tenants/<%= tenant.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta loja? Esta ação não pode ser desfeita.');">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn btn-danger">Excluir Loja</button>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <%- include('../../partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <%- include('../partials/head', { title: 'Dashboard Admin' }) %>
+</head>
+<body class="admin-dashboard">
+  <%- include('../partials/navbar', { user: user, area: 'admin' }) %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../partials/sidebar', { area: 'admin' }) %>
+      
+      <main class="col-md-10 ms-sm-auto col-lg-12 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Dashboard Admin</h1>
+        </div>
+        
+        <%- include('../partials/flash') %>
+        
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Lojas</h5>
+                <h2 class="stats-number"><%= stats.totalTenants %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-success text-white">
+              <div class="card-body">
+                <h5 class="card-title">Lojas Ativas</h5>
+                <h2 class="stats-number"><%= stats.activeTenants %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-warning text-white">
+              <div class="card-body">
+                <h5 class="card-title">Lojas Inativas</h5>
+                <h2 class="stats-number"><%= stats.inactiveTenants %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-info text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Usuários</h5>
+                <h2 class="stats-number"><%= stats.totalUsers %></h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card stats-card bg-secondary text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Produtos</h5>
+                <h2 class="stats-number"><%= stats.totalProducts %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-danger text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Clientes</h5>
+                <h2 class="stats-number"><%= stats.totalClients %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-purple text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Serviços</h5>
+                <h2 class="stats-number"><%= stats.totalServices %></h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stats-card bg-teal text-white">
+              <div class="card-body">
+                <h5 class="card-title">Total de Promoções</h5>
+                <h2 class="stats-number"><%= stats.totalPromotions %></h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Recent Tenants Table -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Lojas Recentes</h5>
+            <a href="/admin/tenants/new" class="btn btn-sm btn-primary">Nova Loja</a>
+          </div>
+          <div class="card-body">
+            <% if (tenants && tenants.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Loja</th>
+                      <th>Slug</th>
+                      <th>Status</th>
+                      <th>Usuários</th>
+                      <th>Produtos</th>
+                      <th>Clientes</th>
+                      <th>Criada em</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% tenants.forEach(tenant => { %>
+                      <tr>
+                        <td><strong><%= tenant.name %></strong></td>
+                        <td><code><%= tenant.slug %></code></td>
+                        <td>
+                          <% if (tenant.active) { %>
+                            <span class="badge bg-success">Ativa</span>
+                          <% } else { %>
+                            <span class="badge bg-danger">Inativa</span>
+                          <% } %>
+                        </td>
+                        <td><%= tenant._count.users || 0 %></td>
+                        <td><%= tenant._count.products || 0 %></td>
+                        <td><%= tenant._count.clients || 0 %></td>
+                        <td><%= new Date(tenant.createdAt).toLocaleDateString('pt-BR') %></td>
+                        <td>
+                          <div class="btn-group btn-group-sm">
+                            <a href="/admin/tenants/<%= tenant.id %>" class="btn btn-outline-primary">Ver</a>
+                            <a href="/admin/tenants/<%= tenant.id %>/edit" class="btn btn-outline-secondary">Editar</a>
+                            <form action="/admin/tenants/<%= tenant.id %>/toggle" method="POST" style="display:inline;">
+                              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                              <button type="submit" class="btn btn-outline-<%= tenant.active ? 'warning' : 'success' %>">
+                                <%= tenant.active ? 'Desativar' : 'Ativar' %>
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <p class="text-muted text-center">Nenhuma loja cadastrada.</p>
+            <% } %>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <%- include('../partials/footer') %>
+</body>
+</html>

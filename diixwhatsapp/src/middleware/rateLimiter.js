@@ -1,6 +1,26 @@
 import rateLimit from 'express-rate-limit';
 
 /**
+ * Helper function to safely extract IP address
+ * Handles IPv6 and IPv4 addresses properly
+ */
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  const ip = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
+  
+  // Handle IPv6 loopback
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+    return '127.0.0.1';
+  }
+  
+  return ip || 'unknown';
+}
+
+/**
  * Rate limiter for login attempts
  * 5 attempts per minute per IP
  */
@@ -13,7 +33,7 @@ export const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress;
+    return getClientIp(req);
   }
 });
 

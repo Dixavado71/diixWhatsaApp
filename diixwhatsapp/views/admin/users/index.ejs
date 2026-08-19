@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <%- include('../../partials/head', { title: 'Gerenciar Usuários' }) %>
+</head>
+<body class="admin-users">
+  <%- include('../../partials/navbar', { user: user, area: 'admin' }) %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../../partials/sidebar', { area: 'admin' }) %>
+      
+      <main class="col-md-10 ms-sm-auto col-lg-12 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">Gerenciar Usuários</h1>
+          <a href="/admin/users/new" class="btn btn-primary">Novo Usuário</a>
+        </div>
+        
+        <%- include('../../partials/flash') %>
+        
+        <div class="card">
+          <div class="card-body">
+            <% if (users && users.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Username</th>
+                      <th>Nome</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Loja</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% users.forEach(u => { %>
+                      <tr>
+                        <td><strong><%= u.username %></strong></td>
+                        <td><%= u.name || '-' %></td>
+                        <td><%= u.email || '-' %></td>
+                        <td>
+                          <% if (u.role === 'MASTER') { %>
+                            <span class="badge bg-danger">MASTER</span>
+                          <% } else if (u.role === 'TENANT_ADMIN') { %>
+                            <span class="badge bg-primary">TENANT_ADMIN</span>
+                          <% } else { %>
+                            <span class="badge bg-secondary">TENANT_USER</span>
+                          <% } %>
+                        </td>
+                        <td><%= u.tenant ? u.tenant.name : '-' %></td>
+                        <td>
+                          <% if (u.active) { %>
+                            <span class="badge bg-success">Ativo</span>
+                          <% } else { %>
+                            <span class="badge bg-danger">Inativo</span>
+                          <% } %>
+                        </td>
+                        <td>
+                          <div class="btn-group btn-group-sm">
+                            <a href="/admin/users/<%= u.id %>/edit" class="btn btn-outline-secondary">Editar</a>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <p class="text-muted text-center">Nenhum usuário cadastrado.</p>
+            <% } %>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <%- include('../../partials/footer') %>
+</body>
+</html>
