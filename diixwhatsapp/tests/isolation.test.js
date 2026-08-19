@@ -1,15 +1,13 @@
 /**
  * Teste Crítico de Isolamento Multi-Tenant
- * 
+ *
  * Este teste verifica se um Tenant NÃO consegue acessar dados de outro Tenant
  */
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/infrastructure/database/prismaClient.js';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 describe('Isolamento Multi-Tenant', () => {
   let tenantA, tenantB;
@@ -19,137 +17,154 @@ describe('Isolamento Multi-Tenant', () => {
 
   before(async () => {
     console.log('\n=== Setup: Criando dados para teste de isolamento ===\n');
-    
-    // Criar Tenant A
-    tenantA = await prisma.tenant.create({
-      data: {
-        name: 'Loja A - Teste Isolamento',
-        slug: 'loja-a-teste-' + Date.now(),
-        email: 'loja.a@teste.com',
-        active: true
-      }
-    });
 
-    // Criar Tenant B
-    tenantB = await prisma.tenant.create({
-      data: {
-        name: 'Loja B - Teste Isolamento',
-        slug: 'loja-b-teste-' + Date.now(),
-        email: 'loja.b@teste.com',
-        active: true
-      }
-    });
+    try {
+      // Criar Tenant A
+      tenantA = await prisma.tenant.create({
+        data: {
+          name: 'Loja A - Teste Isolamento',
+          slug: 'loja-a-teste-' + Date.now(),
+          email: 'loja.a@teste.com',
+          active: true
+        }
+      });
 
-    // Criar usuário para Tenant A
-    const passwordHash = await bcrypt.hash('senha123', 10);
-    userA = await prisma.user.create({
-      data: {
-        tenantId: tenantA.id,
-        username: 'usuario_a',
-        email: 'usuario.a@teste.com',
-        passwordHash,
-        name: 'Usuário Loja A',
-        role: 'TENANT_ADMIN',
-        active: true
-      }
-    });
+      // Criar Tenant B
+      tenantB = await prisma.tenant.create({
+        data: {
+          name: 'Loja B - Teste Isolamento',
+          slug: 'loja-b-teste-' + Date.now(),
+          email: 'loja.b@teste.com',
+          active: true
+        }
+      });
 
-    // Criar usuário para Tenant B
-    userB = await prisma.user.create({
-      data: {
-        tenantId: tenantB.id,
-        username: 'usuario_b',
-        email: 'usuario.b@teste.com',
-        passwordHash,
-        name: 'Usuário Loja B',
-        role: 'TENANT_ADMIN',
-        active: true
-      }
-    });
+      // Criar usuário para Tenant A
+      const passwordHash = await bcrypt.hash('senha123', 10);
+      userA = await prisma.user.create({
+        data: {
+          tenantId: tenantA.id,
+          username: 'usuario_a',
+          email: 'usuario.a@teste.com',
+          passwordHash,
+          name: 'Usuário Loja A',
+          role: 'TENANT_ADMIN',
+          active: true
+        }
+      });
 
-    // Criar Produto A (pertence ao Tenant A)
-    productA = await prisma.product.create({
-      data: {
-        tenantId: tenantA.id,
-        name: 'Produto Exclusivo Loja A',
-        slug: 'produto-loja-a',
-        price: 99.90,
-        stock: 10,
-        active: true
-      }
-    });
+      // Criar usuário para Tenant B
+      userB = await prisma.user.create({
+        data: {
+          tenantId: tenantB.id,
+          username: 'usuario_b',
+          email: 'usuario.b@teste.com',
+          passwordHash,
+          name: 'Usuário Loja B',
+          role: 'TENANT_ADMIN',
+          active: true
+        }
+      });
 
-    // Criar Produto B (pertence ao Tenant B)
-    productB = await prisma.product.create({
-      data: {
-        tenantId: tenantB.id,
-        name: 'Produto Exclusivo Loja B',
-        slug: 'produto-loja-b',
-        price: 149.90,
-        stock: 5,
-        active: true
-      }
-    });
+      // Criar Produto A (pertence ao Tenant A)
+      productA = await prisma.product.create({
+        data: {
+          tenantId: tenantA.id,
+          name: 'Produto Exclusivo Loja A',
+          slug: 'produto-loja-a',
+          price: 99.90,
+          stock: 10,
+          active: true
+        }
+      });
 
-    // Criar Cliente A
-    clientA = await prisma.client.create({
-      data: {
-        tenantId: tenantA.id,
-        name: 'Cliente Loja A',
-        email: 'cliente.a@teste.com',
-        active: true
-      }
-    });
+      // Criar Produto B (pertence ao Tenant B)
+      productB = await prisma.product.create({
+        data: {
+          tenantId: tenantB.id,
+          name: 'Produto Exclusivo Loja B',
+          slug: 'produto-loja-b',
+          price: 149.90,
+          stock: 5,
+          active: true
+        }
+      });
 
-    // Criar Cliente B
-    clientB = await prisma.client.create({
-      data: {
-        tenantId: tenantB.id,
-        name: 'Cliente Loja B',
-        email: 'cliente.b@teste.com',
-        active: true
-      }
-    });
+      // Criar Cliente A
+      clientA = await prisma.client.create({
+        data: {
+          tenantId: tenantA.id,
+          name: 'Cliente Loja A',
+          email: 'cliente.a@teste.com',
+          active: true
+        }
+      });
 
-    console.log('Tenant A ID:', tenantA.id);
-    console.log('Tenant B ID:', tenantB.id);
-    console.log('Produto A ID:', productA.id, '- Tenant:', productA.tenantId);
-    console.log('Produto B ID:', productB.id, '- Tenant:', productB.tenantId);
-    console.log('\n=== Setup concluído ===\n');
+      // Criar Cliente B
+      clientB = await prisma.client.create({
+        data: {
+          tenantId: tenantB.id,
+          name: 'Cliente Loja B',
+          email: 'cliente.b@teste.com',
+          active: true
+        }
+      });
+
+      console.log('Tenant A ID:', tenantA.id);
+      console.log('Tenant B ID:', tenantB.id);
+      console.log('Produto A ID:', productA.id, '- Tenant:', productA.tenantId);
+      console.log('Produto B ID:', productB.id, '- Tenant:', productB.tenantId);
+      console.log('\n=== Setup concluído ===\n');
+    } catch (error) {
+      console.error('Erro no setup:', error);
+      throw error;
+    }
   });
 
   after(async () => {
     console.log('\n=== Cleanup: Removendo dados de teste ===\n');
-    
-    // Remover produtos
-    await prisma.product.deleteMany({
-      where: {
-        id: { in: [productA.id, productB.id] }
-      }
-    });
 
-    // Remover clientes
-    await prisma.client.deleteMany({
-      where: {
-        id: { in: [clientA.id, clientB.id] }
+    try {
+      // Remover produtos
+      if (productA?.id || productB?.id) {
+        await prisma.product.deleteMany({
+          where: {
+            id: { in: [productA.id, productB.id].filter(Boolean) }
+          }
+        });
       }
-    });
 
-    // Remover usuários
-    await prisma.user.deleteMany({
-      where: {
-        id: { in: [userA.id, userB.id] }
+      // Remover clientes
+      if (clientA?.id || clientB?.id) {
+        await prisma.client.deleteMany({
+          where: {
+            id: { in: [clientA.id, clientB.id].filter(Boolean) }
+          }
+        });
       }
-    });
 
-    // Remover tenants
-    await prisma.tenant.deleteMany({
-      where: {
-        id: { in: [tenantA.id, tenantB.id] }
+      // Remover usuários
+      if (userA?.id || userB?.id) {
+        await prisma.user.deleteMany({
+          where: {
+            id: { in: [userA.id, userB.id].filter(Boolean) }
+          }
+        });
       }
-    });
 
-    console.log('=== Cleanup concluído ===\n');
+      // Remover tenants
+      if (tenantA?.id || tenantB?.id) {
+        await prisma.tenant.deleteMany({
+          where: {
+            id: { in: [tenantA.id, tenantB.id].filter(Boolean) }
+          }
+        });
+      }
+
+      console.log('=== Cleanup concluído ===\n');
+    } catch (error) {
+      console.error('Erro no cleanup:', error);
+    }
   });
 
   it('DEVE retornar null quando Tenant A tentar buscar produto do Tenant B pelo repositório', async () => {
@@ -161,7 +176,7 @@ describe('Isolamento Multi-Tenant', () => {
       }
     });
 
-    assert.strictEqual(productFromBWithA, null, 
+    assert.strictEqual(productFromBWithA, null,
       'Produto do Tenant B não deve ser acessível ao Tenant A');
   });
 
@@ -173,7 +188,7 @@ describe('Isolamento Multi-Tenant', () => {
       }
     });
 
-    assert.notStrictEqual(productFromA, null, 
+    assert.notStrictEqual(productFromA, null,
       'Produto deve ser acessível com tenantId correto');
     assert.strictEqual(productFromA.name, 'Produto Exclusivo Loja A');
   });
@@ -199,7 +214,7 @@ describe('Isolamento Multi-Tenant', () => {
       }
     });
 
-    assert.strictEqual(clientFromAWithB, null, 
+    assert.strictEqual(clientFromAWithB, null,
       'Cliente do Tenant A não deve ser acessível ao Tenant B');
   });
 
@@ -214,10 +229,10 @@ describe('Isolamento Multi-Tenant', () => {
 
     assert.strictEqual(clientsA.length, 1, 'Tenant A deve ter 1 cliente');
     assert.strictEqual(clientsA[0].name, 'Cliente Loja A');
-    
+
     assert.strictEqual(clientsB.length, 1, 'Tenant B deve ter 1 cliente');
     assert.strictEqual(clientsB[0].name, 'Cliente Loja B');
-    
+
     // Verificar que são clientes diferentes
     assert.notStrictEqual(clientsA[0].id, clientsB[0].id);
   });
@@ -234,7 +249,7 @@ describe('Isolamento Multi-Tenant', () => {
       }
     });
 
-    assert.strictEqual(updated.count, 0, 
+    assert.strictEqual(updated.count, 0,
       'Update não deve afetar nenhum registro com tenantId errado');
 
     // Verificar que o produto B permanece inalterado
@@ -255,7 +270,7 @@ describe('Isolamento Multi-Tenant', () => {
       }
     });
 
-    assert.strictEqual(deleted.count, 0, 
+    assert.strictEqual(deleted.count, 0,
       'Delete não deve afetar nenhum registro com tenantId errado');
 
     // Verificar que o produto B ainda existe
@@ -263,7 +278,7 @@ describe('Isolamento Multi-Tenant', () => {
       where: { id: productB.id }
     });
 
-    assert.notStrictEqual(productBAfter, null, 
+    assert.notStrictEqual(productBAfter, null,
       'Produto B deve continuar existindo');
   });
 

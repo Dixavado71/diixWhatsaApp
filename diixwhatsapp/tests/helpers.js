@@ -3,11 +3,13 @@
  * Setup de ambiente e utilitários compartilhados
  */
 
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
+// Load test environment first, then fall back to .env
+dotenv.config({ path: '.env.test' });
+dotenv.config(); // Override with .env if exists
 
-// Instância global do Prisma para reutilização nos testes
-export const prisma = new PrismaClient();
+import { prisma } from '../src/infrastructure/database/prismaClient.js';
+import bcrypt from 'bcrypt';
 
 /**
  * Cria um tenant de teste com dados padrão
@@ -31,7 +33,7 @@ export async function createTestTenant(overrides = {}) {
 export async function createTestUser(overrides = {}) {
   const timestamp = Date.now();
   const passwordHash = await bcrypt.hash('senha123', 10);
-  
+
   return await prisma.user.create({
     data: {
       tenantId: overrides.tenantId || null,
@@ -123,38 +125,38 @@ export async function createTestPromotion(tenantId, overrides = {}) {
  */
 export async function cleanupTestData(data) {
   const { promotions, services, products, clients, users, tenants } = data;
-  
+
   try {
     if (promotions?.length) {
       await prisma.promotion.deleteMany({
         where: { id: { in: promotions.map(p => p.id) } }
       });
     }
-    
+
     if (services?.length) {
       await prisma.service.deleteMany({
         where: { id: { in: services.map(s => s.id) } }
       });
     }
-    
+
     if (products?.length) {
       await prisma.product.deleteMany({
         where: { id: { in: products.map(p => p.id) } }
       });
     }
-    
+
     if (clients?.length) {
       await prisma.client.deleteMany({
         where: { id: { in: clients.map(c => c.id) } }
       });
     }
-    
+
     if (users?.length) {
       await prisma.user.deleteMany({
         where: { id: { in: users.map(u => u.id) } }
       });
     }
-    
+
     if (tenants?.length) {
       await prisma.tenant.deleteMany({
         where: { id: { in: tenants.map(t => t.id) } }

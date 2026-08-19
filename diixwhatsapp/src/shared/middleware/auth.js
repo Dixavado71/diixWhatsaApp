@@ -1,4 +1,4 @@
-import { userRepository } from '../repositories/userRepository.js';
+import { userRepository } from '../../repositories/userRepository.js';
 
 /**
  * Authentication Middleware - Verify if user is authenticated
