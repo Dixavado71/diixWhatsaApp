@@ -38,10 +38,19 @@ prisma.$on('error', (e) => {
   logger.error(e);
 });
 
-// Graceful shutdown
-process.on('beforeExit', async () => {
-  logger.info('Shutting down Prisma connection...');
-  await prisma.$disconnect();
-});
+// Graceful shutdown - only disconnect once
+let isDisconnecting = false;
+
+async function disconnectPrisma() {
+  if (!isDisconnecting) {
+    isDisconnecting = true;
+    logger.info('Shutting down Prisma connection...');
+    await prisma.$disconnect();
+  }
+}
+
+process.on('beforeExit', disconnectPrisma);
+process.on('SIGTERM', disconnectPrisma);
+process.on('SIGINT', disconnectPrisma);
 
 export { prisma, logger };
