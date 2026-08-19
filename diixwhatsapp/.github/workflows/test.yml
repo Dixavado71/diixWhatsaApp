@@ -47,7 +47,39 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
         run: npm run db:migrate
 
-      - name: 🧪 Executar todos os testes
+      - name: 🧪 Executar testes unitários
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          NODE_ENV: test
+        run: npm run test:unit
+
+      - name: 🧪 Executar testes de integração
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          NODE_ENV: test
+        run: npm run test:integration
+
+      - name: 🧪 Executar testes de isolamento de tenant
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          NODE_ENV: test
+        run: npm run test:isolation
+
+      - name: 🔒 Executar testes de segurança
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          NODE_ENV: test
+        run: node --test tests/security.test.js
+
+      - name: 🧪 Executar todos os testes (validação final)
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
           SESSION_SECRET: test-session-secret-key-12345678901234567890
@@ -61,7 +93,7 @@ jobs:
           SESSION_SECRET: test-session-secret-key-12345678901234567890
           CSRF_SECRET: test-csrf-secret-key-12345678901234567890
           NODE_ENV: test
-        run: node --test --experimental-test-coverage
+        run: npm run test:coverage
 
       - name: 📁 Upload do relatório de cobertura
         uses: actions/upload-artifact@v4
@@ -92,6 +124,7 @@ jobs:
         run: |
           node --check tests/helpers.js
           node --check tests/isolation.test.js
+          node --check tests/security.test.js
           node --check tests/integration/api.test.js
           node --check tests/unit/repositories.test.js
           node --check tests/unit/validators.test.js
