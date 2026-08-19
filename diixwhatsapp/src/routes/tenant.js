@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { tenantController } from '../controllers/tenantController.js';
-import { requireTenant } from '../middleware/auth.js';
+import { requireTenant } from '../shared/middleware/auth.js';
 
 const router = Router();
 

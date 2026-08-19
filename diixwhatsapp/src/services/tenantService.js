@@ -1,6 +1,6 @@
 import { tenantRepository } from '../repositories/tenantRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
-import { generateSlug } from '../utils/slug.js';
+import { generateSlug } from '../shared/helpers/slug.js';
 
 /**
  * Tenant Service - Business logic for Tenant operations
