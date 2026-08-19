@@ -15,7 +15,7 @@
         <p>Admin Master - Diix Solutions</p>
       </div>
       
-      <%- include('partials/flash.ejs') %>
+      <%- include('../partials/flash.ejs') %>
       
       <form action="/admin/login" method="POST" class="auth-form">
         <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
