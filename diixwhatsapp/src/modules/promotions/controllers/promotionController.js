@@ -62,14 +62,14 @@ export const promotionController = {
 
       // Log audit event (if audit log service is available)
       try {
-        await auditLogService.log({
+        await auditLogRepository.logCRUD(
+          req.session.user.id,
           tenantId,
-          userId: req.session.user.id,
-          action: 'CREATE',
-          entityType: 'PROMOTION',
-          entityId: promotion.id,
-          details: { name: promotion.name }
-        });
+          'CREATE',
+          'PROMOTION',
+          promotion.id,
+          req.ip
+        );
       } catch (auditError) {
         // Audit logging failure should not block the main operation
         console.warn('Audit log failed:', auditError.message);
@@ -128,14 +128,14 @@ export const promotionController = {
 
       // Log audit event
       try {
-        await auditLogService.log({
+        await auditLogRepository.logCRUD(
+          req.session.user.id,
           tenantId,
-          userId: req.session.user.id,
-          action: 'UPDATE',
-          entityType: 'PROMOTION',
-          entityId: promotion.id,
-          details: { name: promotion.name }
-        });
+          'UPDATE',
+          'PROMOTION',
+          promotion.id,
+          req.ip
+        );
       } catch (auditError) {
         console.warn('Audit log failed:', auditError.message);
       }
@@ -170,13 +170,14 @@ export const promotionController = {
 
       // Log audit event
       try {
-        await auditLogService.log({
+        await auditLogRepository.logCRUD(
+          req.session.user.id,
           tenantId,
-          userId: req.session.user.id,
-          action: 'DELETE',
-          entityType: 'PROMOTION',
-          entityId: req.params.id
-        });
+          'DELETE',
+          'PROMOTION',
+          req.params.id,
+          req.ip
+        );
       } catch (auditError) {
         console.warn('Audit log failed:', auditError.message);
       }
@@ -211,7 +212,5 @@ export const promotionController = {
 // Import schemas for validation in controller
 import { createPromotionSchema, updatePromotionSchema } from '../validators/promotionValidator.js';
 
-// Import audit log service (optional, with fallback)
-import { auditLogService } from '../../services/auditLogService.js'.catch(() => ({
-  log: async () => {}
-}));
+// Import audit log repository for optional audit logging
+import { auditLogRepository } from '../../../repositories/auditLogRepository.js';
