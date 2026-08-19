@@ -1,0 +1,92 @@
+<%- include('../partials/head', { title: title }) %>
+
+<div class="dashboard-container">
+  <div class="page-header">
+    <h1><i class="icon-users"></i> Usuários da Loja</h1>
+    <a href="/tenant/users/new" class="btn btn-primary">
+      <i class="icon-plus"></i> Novo Usuário
+    </a>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <% if (users.length === 0) { %>
+    <div class="empty-state">
+      <i class="icon-inbox"></i>
+      <p>Nenhum usuário cadastrado nesta loja</p>
+      <a href="/tenant/users/new" class="btn btn-secondary">Cadastrar primeiro usuário</a>
+    </div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Último Acesso</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(user => { %>
+            <tr>
+              <td><strong><%= user.name %></strong></td>
+              <td><%= user.username %></td>
+              <td>
+                <% if (user.email) { %>
+                  <a href="mailto:<%= user.email %>"><%= user.email %></a>
+                <% } else { %>
+                  <span class="text-muted">-</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (user.role === 'TENANT_ADMIN') { %>
+                  <span class="badge badge-warning">Admin</span>
+                <% } else { %>
+                  <span class="badge badge-info">Usuário</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (user.active) { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } else { %>
+                  <span class="badge badge-warning">Inativo</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (user.lastLoginAt) { %>
+                  <%= new Date(user.lastLoginAt).toLocaleDateString('pt-BR') %>
+                  <br><small class="text-muted"><%= new Date(user.lastLoginAt).toLocaleTimeString('pt-BR') %></small>
+                <% } else { %>
+                  <span class="text-muted">Nunca</span>
+                <% } %>
+              </td>
+              <td class="actions">
+                <a href="/tenant/users/<%= user.id %>/edit" class="btn btn-sm btn-secondary" title="Editar">
+                  <i class="icon-edit"></i>
+                </a>
+                <% if (user.role !== 'TENANT_ADMIN' || users.filter(u => u.role === 'TENANT_ADMIN').length > 1) { %>
+                  <form action="/tenant/users/<%= user.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
+                    <%- include('../partials/csrf') %>
+                    <button type="submit" class="btn btn-sm btn-danger" title="Excluir">
+                      <i class="icon-trash"></i>
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>
