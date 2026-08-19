@@ -363,3 +363,47 @@ ISC - Diix Solutions
 
 **Versão:** 1.0.0  
 **Última atualização:** Agosto 2024
+
+
+## 🧪 Estrutura de Testes Implementada
+
+```
+tests/
+├── README.md                    # Guia completo de testes
+├── helpers.js                   # Utilitários compartilhados
+├── isolation.test.js            # Testes de isolamento multi-tenant
+├── integration/
+│   └── api.test.js             # Testes de integração da API
+└── unit/
+    ├── repositories.test.js    # Testes unitários de repositórios
+    └── validators.test.js      # Testes de validação Zod
+```
+
+### Scripts Disponíveis
+
+```bash
+npm test                       # Executa todos os testes
+npm run test:watch            # Watch mode (reexecuta automaticamente)
+npm run test:coverage         # Gera relatório de cobertura
+npm run test:unit             # Apenas testes unitários
+npm run test:integration      # Apenas testes de integração
+npm run test:isolation        # Testes de isolamento multi-tenant
+```
+
+### GitHub Actions
+
+Workflow configurado em `.github/workflows/test.yml` com:
+- ✅ Execução automática em push/PR
+- ✅ Banco PostgreSQL temporário
+- ✅ 4 jobs: testes, lint, security, build
+- ✅ Relatório de cobertura como artefato
+
+### Total de Testes
+
+- **Isolamento Multi-Tenant:** 9 testes
+- **Integração API:** 25+ testes
+- **Unitários Repositórios:** 40+ testes
+- **Validações Zod:** 30+ testes
+
+**Total: 100+ testes automatizados** 🎉
+

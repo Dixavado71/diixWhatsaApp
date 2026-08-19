@@ -12,7 +12,12 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
-    "test": "node --test"
+    "test": "node --test",
+    "test:watch": "nodemon --exec \"node --test\" tests/**/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test:isolation": "node --test tests/isolation.test.js"
   },
   "keywords": [
     "multi-tenant",
