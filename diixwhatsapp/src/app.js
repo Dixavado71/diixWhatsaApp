@@ -11,6 +11,7 @@ import serviceRoutes from './modules/services/routes/serviceRoutes.js';
 import promotionRoutes from './modules/promotions/routes/promotionRoutes.js';
 import tenantRoutes from './modules/tenants/routes/tenantRoutes.js';
 import productRoutes from './modules/products/routes/productRoutes.js';
+import userRoutes from './modules/users/routes/userRoutes.js';
 import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
 import { optionalAuth } from './shared/middleware/auth.js';
 import { generalLimiter } from './shared/middleware/rateLimiter.js';
@@ -499,6 +500,9 @@ app.use('/tenant', serviceRoutes);
 
 // Promotions module routes (modularized)
 app.use('/tenant', promotionRoutes);
+
+// Users module routes (modularized) - Admin only for user management
+app.use('/admin', userRoutes);
 
 // Error handling
 app.use(notFoundHandler);

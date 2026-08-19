@@ -3,7 +3,7 @@
  * Orchestrates calls to other domain modules through their public APIs
  */
 import { tenantService } from '../tenants/services/tenantService.js';
-import { userRepository } from '../../repositories/userRepository.js';
+import { userService } from '../../modules/users/services/userService.js';
 import { auditLogRepository } from '../../repositories/auditLogRepository.js';
 import { adminRepository } from './repositories/adminRepository.js';
 import { hashPassword } from '../../shared/helpers/password.js';
@@ -62,14 +62,14 @@ export const adminService = {
    * Get all users for admin listing
    */
   async getAllUsers(options = {}) {
-    return userRepository.findAll(options);
+    return userService.getAllUsers(options);
   },
 
   /**
    * Get user by ID for admin
    */
   async getUserById(id) {
-    return userRepository.findById(id);
+    return userService.getUserById(id);
   },
 
   /**
@@ -84,7 +84,7 @@ export const adminService = {
       password: undefined
     };
 
-    const user = await userRepository.create(userDataToCreate);
+    const user = await userService.createUser(userDataToCreate, adminUserId, ip);
 
     // Log creation
     await auditLogRepository.logCRUD(
@@ -103,7 +103,7 @@ export const adminService = {
    * Update user through admin panel
    */
   async updateUser(id, userData, adminUserId, ip) {
-    const updatedUser = await userRepository.update(id, userData);
+    const updatedUser = await userService.updateUser(id, userData, adminUserId, ip);
 
     // Log update
     await auditLogRepository.logCRUD(
@@ -122,7 +122,7 @@ export const adminService = {
    * Delete user through admin panel
    */
   async deleteUser(id, adminUserId, ip) {
-    await userRepository.delete(id);
+    await userService.deleteUser(id, adminUserId, ip);
 
     // Log deletion
     await auditLogRepository.logCRUD(
