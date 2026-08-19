@@ -2,26 +2,37 @@ import { authService } from '../services/authService.js';
 import { loginSchema } from '../validators/authValidator.js';
 
 /**
- * Auth Controller - Handle authentication requests
+ * Auth Controller - Handle authentication requests (API mode)
  */
 export const authController = {
   /**
-   * Show login page
+   * Show login page - Returns JSON for API clients
    */
   showLogin: (req, res) => {
     if (req.session && req.session.user) {
-      // Already logged in, redirect based on role
-      return res.redirect(req.session.user.role === 'MASTER' ? '/admin/dashboard' : '/tenant/dashboard');
+      // Already logged in, return user info
+      return res.json({
+        authenticated: true,
+        user: {
+          id: req.session.user.id,
+          username: req.session.user.username,
+          role: req.session.user.role,
+          tenantId: req.session.user.tenantId
+        },
+        redirect: req.session.user.role === 'MASTER' ? '/admin/dashboard' : '/tenant/dashboard'
+      });
     }
 
-    res.render('auth/login', {
-      title: 'Login',
-      error: null
+    res.json({
+      authenticated: false,
+      message: 'Please provide credentials to login',
+      endpoint: 'POST /login',
+      requiredFields: ['username', 'password']
     });
   },
 
   /**
-   * Process login
+   * Process login - Returns JSON response
    */
   login: async (req, res) => {
     try {
@@ -41,8 +52,8 @@ export const authController = {
       );
 
       if (!result.success) {
-        return res.render('auth/login', {
-          title: 'Login',
+        return res.status(401).json({
+          success: false,
           error: result.error
         });
       }
@@ -58,34 +69,39 @@ export const authController = {
       // Store user in session (without sensitive data)
       req.session.user = result.user;
 
-      // Redirect based on role
-      const returnTo = req.session.returnTo;
-      delete req.session.returnTo;
+      // Return success response with user info
+      const response = {
+        success: true,
+        message: 'Login successful',
+        user: {
+          id: result.user.id,
+          username: result.user.username,
+          role: result.user.role,
+          tenantId: result.user.tenantId
+        },
+        redirect: result.user.role === 'MASTER' ? '/admin/dashboard' : '/tenant/dashboard'
+      };
 
-      if (result.user.role === 'MASTER') {
-        return res.redirect(returnTo || '/admin/dashboard');
-      } else {
-        return res.redirect(returnTo || '/tenant/dashboard');
-      }
+      res.json(response);
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('auth/login', {
-          title: 'Login',
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Login error:', error);
-      return res.render('auth/login', {
-        title: 'Login',
+      return res.status(500).json({
+        success: false,
         error: 'Ocorreu um erro ao fazer login. Tente novamente.'
       });
     }
   },
 
   /**
-   * Logout
+   * Logout - Returns JSON response
    */
   logout: async (req, res) => {
     try {
@@ -106,38 +122,57 @@ export const authController = {
       });
 
       res.clearCookie('diixwhatsapp.sid');
-      res.redirect('/login');
+      res.json({
+        success: true,
+        message: 'Logout successful',
+        redirect: '/login'
+      });
     } catch (error) {
       console.error('Logout error:', error);
-      res.redirect('/login');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao fazer logout'
+      });
     }
   },
 
   /**
-   * Show admin login page (with different styling)
+   * Show admin login page - Returns JSON for API clients
    */
   showAdminLogin: (req, res) => {
     if (req.session && req.session.user && req.session.user.role === 'MASTER') {
-      return res.redirect('/admin/dashboard');
+      return res.json({
+        authenticated: true,
+        user: req.session.user,
+        redirect: '/admin/dashboard'
+      });
     }
 
-    res.render('auth/admin-login', {
-      title: 'Login Admin',
-      error: null
+    res.json({
+      authenticated: false,
+      message: 'Admin login required',
+      endpoint: 'POST /login',
+      requiredRole: 'MASTER'
     });
   },
 
   /**
-   * Show tenant login page
+   * Show tenant login page - Returns JSON for API clients
    */
   showTenantLogin: (req, res) => {
     if (req.session && req.session.user && req.session.user.tenantId) {
-      return res.redirect('/tenant/dashboard');
+      return res.json({
+        authenticated: true,
+        user: req.session.user,
+        redirect: '/tenant/dashboard'
+      });
     }
 
-    res.render('auth/tenant-login', {
-      title: 'Login da Loja',
-      error: null
+    res.json({
+      authenticated: false,
+      message: 'Tenant login required',
+      endpoint: 'POST /login',
+      requiredRole: 'TENANT'
     });
   }
 };
