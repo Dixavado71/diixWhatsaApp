@@ -103,3 +103,4 @@ export const updateProductSchema = z.object({
     .boolean()
     .optional()
 });
+
