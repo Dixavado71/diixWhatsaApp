@@ -20,22 +20,22 @@ export function errorHandler(err, req, res, next) {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
       case 'P2002': // Unique constraint violation
-        return res.status(409).render('errors/500', {
-          title: 'Conflito',
+        return res.status(409).json({
+          error: 'Conflito',
           message: 'Já existe um registro com estes dados.',
-          error: isDev ? err.message : undefined
+          details: isDev ? err.message : undefined
         });
       case 'P2003': // Foreign key constraint violation
-        return res.status(400).render('errors/500', {
-          title: 'Erro de Referência',
+        return res.status(400).json({
+          error: 'Erro de Referência',
           message: 'Este registro está sendo utilizado em outro lugar.',
-          error: isDev ? err.message : undefined
+          details: isDev ? err.message : undefined
         });
       case 'P2025': // Record not found
-        return res.status(404).render('errors/500', {
-          title: 'Não Encontrado',
+        return res.status(404).json({
+          error: 'Não Encontrado',
           message: 'Registro não encontrado.',
-          error: isDev ? err.message : undefined
+          details: isDev ? err.message : undefined
         });
       default:
         appLogger.db.error('Prisma error', err.code, err);
@@ -45,19 +45,18 @@ export function errorHandler(err, req, res, next) {
 
   // Handle JSON parse errors
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).render('errors/500', {
-      title: 'Requisição Inválida',
+    return res.status(400).json({
+      error: 'Requisição Inválida',
       message: 'Dados enviados em formato inválido.',
-      error: isDev ? err.message : undefined
+      details: isDev ? err.message : undefined
     });
   }
 
   // Default to 500
-  res.status(err.status || 500);
-  res.render('errors/500', {
-    title: 'Erro Interno',
+  res.status(err.status || 500).json({
+    error: 'Erro Interno',
     message: isDev ? err.message : 'Ocorreu um erro interno. Por favor, tente novamente.',
-    error: isDev ? err.stack : undefined
+    details: isDev ? err.stack : undefined
   });
 }
 
@@ -65,8 +64,8 @@ export function errorHandler(err, req, res, next) {
  * 404 Not Found Handler
  */
 export function notFoundHandler(req, res, next) {
-  res.status(404).render('errors/404', {
-    title: 'Página Não Encontrada',
+  res.status(404).json({
+    error: 'Página Não Encontrada',
     message: 'A página que você está procurando não foi encontrada.'
   });
 }
