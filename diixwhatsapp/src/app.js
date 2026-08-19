@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { config } from './config/env.js';
 import { sessionConfig } from './config/session.js';
-import authRoutes from './routes/auth.js';
+import { authRoutes } from './modules/auth/routes/authRoutes.js';
 import adminRoutes from './modules/admin/routes/adminRoutes.js';
 import clientRoutes from './modules/clients/routes/clientRoutes.js';
 import serviceRoutes from './modules/services/routes/serviceRoutes.js';
