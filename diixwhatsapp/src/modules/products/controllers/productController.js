@@ -1,11 +1,11 @@
 /**
- * Product Controller - Handle HTTP requests for Product entity
+ * Product Controller - Handle HTTP requests for Product entity (API ONLY)
  * Responsibilities:
  * - Receive request
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return response
+ * - Return JSON response
  */
 import { productService } from '../services/productService.js';
 import { createProductSchema, updateProductSchema } from '../validators/productValidator.js';
@@ -19,28 +19,26 @@ export const productController = {
       const tenantId = req.session.user.tenantId;
       const products = await productService.getAllProducts(tenantId);
 
-      res.render('tenant/products/index', {
-        title: 'Produtos',
-        products
+      res.json({
+        success: true,
+        data: { products }
       });
     } catch (error) {
       console.error('List products error:', error);
-      res.render('tenant/products/index', {
-        title: 'Produtos',
-        products: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar produtos'
       });
     }
   },
 
   /**
-   * Show new product form
+   * Show new product metadata (API equivalent of show form)
    */
   showNewProduct: (req, res) => {
-    res.render('tenant/products/new', {
-      title: 'Novo Produto',
-      product: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados do novo produto.'
     });
   },
 
@@ -56,28 +54,30 @@ export const productController = {
 
       // Log creation would go here (auditLog service to be integrated)
 
-      res.redirect('/tenant/products');
+      res.status(201).json({
+        success: true,
+        message: 'Produto criado com sucesso',
+        data: product
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('tenant/products/new', {
-          title: 'Novo Produto',
-          product: req.body,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Create product error:', error);
-      res.render('tenant/products/new', {
-        title: 'Novo Produto',
-        product: req.body,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar produto'
       });
     }
   },
 
   /**
-   * Show edit product form
+   * Show edit product data (API equivalent of show edit form)
    */
   showEditProduct: async (req, res) => {
     try {
@@ -85,19 +85,22 @@ export const productController = {
       const product = await productService.getProductById(req.params.id, tenantId);
 
       if (!product) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Produto não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Produto não encontrado'
         });
       }
 
-      res.render('tenant/products/edit', {
-        title: 'Editar Produto',
-        product
+      res.json({
+        success: true,
+        data: { product }
       });
     } catch (error) {
       console.error('Show edit product error:', error);
-      res.redirect('/tenant/products');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do produto'
+      });
     }
   },
 
@@ -112,21 +115,31 @@ export const productController = {
       const product = await productService.updateProduct(req.params.id, tenantId, validatedData);
 
       if (!product) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Produto não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Produto não encontrado'
         });
       }
 
       // Log update would go here
 
-      res.redirect('/tenant/products');
+      res.json({
+        success: true,
+        message: 'Produto atualizado com sucesso',
+        data: product
+      });
     } catch (error) {
+      if (error instanceof Error && error.name === 'ZodError') {
+        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
+        return res.status(400).json({
+          success: false,
+          error: errorMessage
+        });
+      }
+
       console.error('Update product error:', error);
-      const product = await productService.getProductById(req.params.id, req.session.user.tenantId);
-      res.render('tenant/products/edit', {
-        title: 'Editar Produto',
-        product,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar produto'
       });
     }
@@ -143,11 +156,16 @@ export const productController = {
 
       // Log deletion would go here
 
-      res.redirect('/tenant/products');
+      res.json({
+        success: true,
+        message: 'Produto excluído com sucesso'
+      });
     } catch (error) {
       console.error('Delete product error:', error);
-      res.redirect('/tenant/products');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir produto'
+      });
     }
   }
 };
-

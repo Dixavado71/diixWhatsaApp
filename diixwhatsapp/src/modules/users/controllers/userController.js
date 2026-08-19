@@ -1,5 +1,11 @@
 /**
- * User Controller - HTTP layer for User operations
+ * User Controller - HTTP layer for User operations (API ONLY)
+ * Responsibilities:
+ * - Receive request
+ * - Get authenticated context
+ * - Validate input
+ * - Call service
+ * - Return JSON response
  */
 import { userService } from '../services/userService.js';
 import { createUserSchema, updateUserSchema } from '../validators/userValidator.js';
@@ -12,22 +18,21 @@ export const userController = {
     try {
       const users = await userService.getAllUsers({});
       
-      res.render('admin/users/index', {
-        title: 'Gerenciar Usuários',
-        users
+      res.json({
+        success: true,
+        data: { users }
       });
     } catch (error) {
       console.error('List users error:', error);
-      res.render('admin/users/index', {
-        title: 'Gerenciar Usuários',
-        users: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar usuários'
       });
     }
   },
 
   /**
-   * Show new user form
+   * Get metadata for creating a new user (returns active tenants for dropdown)
    */
   showNewUser: async (req, res) => {
     try {
@@ -35,19 +40,15 @@ export const userController = {
       const { tenantService } = await import('../../tenants/services/tenantService.js');
       const tenants = await tenantService.getAllTenants({ active: true });
       
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: null,
-        tenants,
-        error: null
+      res.json({
+        success: true,
+        data: { tenants }
       });
     } catch (error) {
       console.error('Show new user error:', error);
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: null,
-        tenants: [],
-        error: 'Erro ao carregar formulário'
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados para o formulário'
       });
     }
   },
@@ -61,58 +62,56 @@ export const userController = {
       const adminUserId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
       
-      await userService.createUser(validatedData, adminUserId, ip);
+      const newUser = await userService.createUser(validatedData, adminUserId, ip);
 
-      res.redirect('/admin/users');
+      res.status(201).json({
+        success: true,
+        message: 'Usuário criado com sucesso',
+        data: newUser
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const { tenantService } = await import('../../tenants/services/tenantService.js');
-        const tenants = await tenantService.getAllTenants({ active: true });
-        return res.render('admin/users/new', {
-          title: 'Novo Usuário',
-          user: req.body,
-          tenants,
-          error: errorMessage
+        return res.status(400).json({
+          success: false,
+          error: error.errors[0]?.message || 'Dados inválidos'
         });
       }
 
       console.error('Create user error:', error);
-      const { tenantService } = await import('../../tenants/services/tenantService.js');
-      const tenants = await tenantService.getAllTenants({ active: true });
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: req.body,
-        tenants,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar usuário'
       });
     }
   },
 
   /**
-   * Show edit user form
+   * Get user data and active tenants for editing
    */
   showEditUser: async (req, res) => {
     try {
       const user = await userService.getUserById(req.params.id);
-      const { tenantService } = await import('../../tenants/services/tenantService.js');
-      const tenants = await tenantService.getAllTenants({ active: true });
       
       if (!user) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Usuário não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Usuário não encontrado'
         });
       }
 
-      res.render('admin/users/edit', {
-        title: 'Editar Usuário',
-        user,
-        tenants
+      const { tenantService } = await import('../../tenants/services/tenantService.js');
+      const tenants = await tenantService.getAllTenants({ active: true });
+      
+      res.json({
+        success: true,
+        data: { user, tenants }
       });
     } catch (error) {
       console.error('Show edit user error:', error);
-      res.redirect('/admin/users');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do usuário'
+      });
     }
   },
 
@@ -127,33 +126,21 @@ export const userController = {
 
       await userService.updateUser(req.params.id, validatedData, userId, ip);
 
-      res.redirect('/admin/users');
+      res.json({
+        success: true,
+        message: 'Usuário atualizado com sucesso'
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const user = await userService.getUserById(req.params.id);
-        const { tenantService } = await import('../../tenants/services/tenantService.js');
-        const tenants = await tenantService.getAllTenants({ active: true });
-        return res.render('admin/users/edit', {
-          title: 'Editar Usuário',
-          user,
-          tenants,
-          error: errorMessage
+        return res.status(400).json({
+          success: false,
+          error: error.errors[0]?.message || 'Dados inválidos'
         });
       }
 
       console.error('Update user error:', error);
-      res.render('admin/users/edit', {
-        title: 'Editar Usuário',
-        user: await userService.getUserById(req.params.id),
-        tenants: await (async () => {
-          try {
-            const { tenantService } = await import('../../tenants/services/tenantService.js');
-            return await tenantService.getAllTenants({ active: true });
-          } catch {
-            return [];
-          }
-        })(),
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar usuário'
       });
     }
@@ -169,11 +156,16 @@ export const userController = {
 
       await userService.deleteUser(req.params.id, userId, ip);
 
-      res.redirect('/admin/users');
+      res.json({
+        success: true,
+        message: 'Usuário excluído com sucesso'
+      });
     } catch (error) {
       console.error('Delete user error:', error);
-      res.redirect('/admin/users');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir usuário'
+      });
     }
   }
 };
-

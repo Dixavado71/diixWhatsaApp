@@ -9,7 +9,7 @@ import { auditLogRepository } from '../../../repositories/auditLogRepository.js'
  * - Get authenticated context (MASTER role required)
  * - Validate input
  * - Call service
- * - Return response
+ * - Return JSON response
  */
 export const tenantController = {
   /**
@@ -18,29 +18,26 @@ export const tenantController = {
   listTenants: async (req, res) => {
     try {
       const tenants = await tenantService.getAllTenants();
-      
-      res.render('admin/tenants/index', {
-        title: 'Gerenciar Lojas',
-        tenants
+      res.json({
+        success: true,
+        data: { tenants }
       });
     } catch (error) {
       console.error('List tenants error:', error);
-      res.render('admin/tenants/index', {
-        title: 'Gerenciar Lojas',
-        tenants: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar lojas'
       });
     }
   },
 
   /**
-   * Show new tenant form
+   * Show new tenant metadata (API equivalent of show form)
    */
   showNewTenant: (req, res) => {
-    res.render('admin/tenants/new', {
-      title: 'Nova Loja',
-      tenant: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados da nova loja.'
     });
   },
 
@@ -58,47 +55,52 @@ export const tenantController = {
       // Log creation
       await auditLogRepository.logCRUD(userId, tenant.id, 'CREATE', 'TENANT', tenant.id, ip);
 
-      res.redirect('/admin/tenants');
+      res.status(201).json({
+        success: true,
+        message: 'Loja criada com sucesso',
+        data: tenant
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('admin/tenants/new', {
-          title: 'Nova Loja',
-          tenant: req.body,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Create tenant error:', error);
-      res.render('admin/tenants/new', {
-        title: 'Nova Loja',
-        tenant: req.body,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar loja'
       });
     }
   },
 
   /**
-   * Show edit tenant form
+   * Show edit tenant data (API equivalent of show edit form)
    */
   showEditTenant: async (req, res) => {
     try {
       const tenant = await tenantService.getTenantById(req.params.id);
       
       if (!tenant) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Loja não encontrada'
+        return res.status(404).json({
+          success: false,
+          error: 'Loja não encontrada'
         });
       }
 
-      res.render('admin/tenants/edit', {
-        title: 'Editar Loja',
-        tenant
+      res.json({
+        success: true,
+        data: { tenant }
       });
     } catch (error) {
       console.error('Show edit tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados da loja'
+      });
     }
   },
 
@@ -116,22 +118,22 @@ export const tenantController = {
       // Log update
       await auditLogRepository.logCRUD(userId, req.params.id, 'UPDATE', 'TENANT', req.params.id, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Loja atualizada com sucesso'
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const tenant = await tenantService.getTenantById(req.params.id);
-        return res.render('admin/tenants/edit', {
-          title: 'Editar Loja',
-          tenant,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Update tenant error:', error);
-      res.render('admin/tenants/edit', {
-        title: 'Editar Loja',
-        tenant: await tenantService.getTenantById(req.params.id),
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar loja'
       });
     }
@@ -150,10 +152,17 @@ export const tenantController = {
       // Log action
       await auditLogRepository.logCRUD(userId, req.params.id, tenant.active ? 'ACTIVATE' : 'DEACTIVATE', 'TENANT', req.params.id, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Status da loja atualizado com sucesso',
+        data: tenant
+      });
     } catch (error) {
       console.error('Toggle tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao atualizar status da loja'
+      });
     }
   },
 
@@ -170,10 +179,16 @@ export const tenantController = {
       // Log deletion
       await auditLogRepository.logCRUD(userId, req.params.id, 'DELETE', 'TENANT', req.params.id, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Loja excluída com sucesso'
+      });
     } catch (error) {
       console.error('Delete tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir loja'
+      });
     }
   }
 };

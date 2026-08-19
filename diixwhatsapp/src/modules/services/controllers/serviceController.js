@@ -1,14 +1,20 @@
+/**
+ * Service Controller - HTTP layer for Service entity (API ONLY)
+ * Responsibilities:
+ * - Receive request
+ * - Get authenticated context
+ * - Validate input
+ * - Call service
+ * - Return JSON response
+ */
 import { serviceService } from '../services/serviceService.js';
 import { createServiceSchema, updateServiceSchema } from '../validators/serviceValidator.js';
 
-/**
- * Service Controller - HTTP layer for Service entity
- */
 export const serviceController = {
   /**
    * List all services for the authenticated tenant
    */
-  listServices: async (req, res, next) => {
+  listServices: async (req, res) => {
     try {
       const tenantId = req.session.user.tenantId;
       
@@ -20,25 +26,26 @@ export const serviceController = {
       
       const services = await serviceService.getAllServices(tenantId, filters);
       
-      res.render('tenant/services/index', {
-        services
+      res.json({
+        success: true,
+        data: { services }
       });
     } catch (error) {
       console.error('List services error:', error);
-      res.render('tenant/services/index', {
-        services: [],
-        error: 'Failed to load services'
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar serviços'
       });
     }
   },
 
   /**
-   * Show form to create a new service
+   * Show new service metadata (API equivalent of show form)
    */
   showNewService: (req, res) => {
-    res.render('tenant/services/new', {
-      service: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados do novo serviço.'
     });
   },
 
@@ -54,43 +61,52 @@ export const serviceController = {
       
       const service = await serviceService.createService(tenantId, validatedData);
       
-      // Flash message for success
-      req.flash('success', 'Service created successfully');
-      
-      res.redirect('/tenant/services');
+      res.status(201).json({
+        success: true,
+        message: 'Serviço criado com sucesso',
+        data: service
+      });
     } catch (error) {
-      console.error('Create service error:', error);
-      
-      if (error.name === 'ZodError') {
-        return res.render('tenant/services/new', {
-          service: req.body,
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({
+          success: false,
           error: error.errors.map(e => e.message).join(', ')
         });
       }
       
-      res.render('tenant/services/new', {
-        service: req.body,
-        error: 'Failed to create service'
+      console.error('Create service error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao criar serviço'
       });
     }
   },
 
   /**
-   * Show form to edit an existing service
+   * Show edit service data (API equivalent of show edit form)
    */
   showEditService: async (req, res) => {
     try {
       const tenantId = req.session.user.tenantId;
       const service = await serviceService.getServiceById(req.params.id, tenantId);
       
-      res.render('tenant/services/edit', {
-        service,
-        error: null
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          error: 'Serviço não encontrado'
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: { service }
       });
     } catch (error) {
       console.error('Show edit service error:', error);
-      req.flash('error', 'Service not found');
-      res.redirect('/tenant/services');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do serviço'
+      });
     }
   },
 
@@ -106,23 +122,30 @@ export const serviceController = {
       
       const service = await serviceService.updateService(req.params.id, tenantId, validatedData);
       
-      // Flash message for success
-      req.flash('success', 'Service updated successfully');
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          error: 'Serviço não encontrado'
+        });
+      }
       
-      res.redirect('/tenant/services');
+      res.json({
+        success: true,
+        message: 'Serviço atualizado com sucesso',
+        data: service
+      });
     } catch (error) {
-      console.error('Update service error:', error);
-      
-      if (error.name === 'ZodError') {
-        return res.render('tenant/services/edit', {
-          service: req.body,
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({
+          success: false,
           error: error.errors.map(e => e.message).join(', ')
         });
       }
       
-      res.render('tenant/services/edit', {
-        service: await serviceService.getServiceById(req.params.id, req.session.user.tenantId).catch(() => req.body),
-        error: 'Failed to update service'
+      console.error('Update service error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao atualizar serviço'
       });
     }
   },
@@ -136,14 +159,16 @@ export const serviceController = {
       
       await serviceService.deleteService(req.params.id, tenantId);
       
-      // Flash message for success
-      req.flash('success', 'Service deleted successfully');
+      res.json({
+        success: true,
+        message: 'Serviço excluído com sucesso'
+      });
     } catch (error) {
       console.error('Delete service error:', error);
-      req.flash('error', 'Failed to delete service');
-    } finally {
-      res.redirect('/tenant/services');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir serviço'
+      });
     }
   }
 };
-

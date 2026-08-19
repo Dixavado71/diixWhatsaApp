@@ -1,11 +1,11 @@
 /**
- * Client Controller - Handle HTTP requests for Client entity
+ * Client Controller - Handle HTTP requests for Client entity (API ONLY)
  * Responsibilities:
  * - Receive request
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return response
+ * - Return JSON response
  */
 import { clientService } from '../services/clientService.js';
 import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
@@ -19,28 +19,26 @@ export const clientController = {
       const tenantId = req.session.user.tenantId;
       const clients = await clientService.getAllClients(tenantId);
 
-      res.render('tenant/clients/index', {
-        title: 'Clientes',
-        clients
+      res.json({
+        success: true,
+        data: { clients }
       });
     } catch (error) {
       console.error('List clients error:', error);
-      res.render('tenant/clients/index', {
-        title: 'Clientes',
-        clients: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar clientes'
       });
     }
   },
 
   /**
-   * Show new client form
+   * Show new client metadata (API equivalent of show form)
    */
   showNewClient: (req, res) => {
-    res.render('tenant/clients/new', {
-      title: 'Novo Cliente',
-      client: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados do novo cliente.'
     });
   },
 
@@ -56,28 +54,30 @@ export const clientController = {
 
       // Log creation would go here (auditLog service to be integrated)
 
-      res.redirect('/tenant/clients');
+      res.status(201).json({
+        success: true,
+        message: 'Cliente criado com sucesso',
+        data: client
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('tenant/clients/new', {
-          title: 'Novo Cliente',
-          client: req.body,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Create client error:', error);
-      res.render('tenant/clients/new', {
-        title: 'Novo Cliente',
-        client: req.body,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar cliente'
       });
     }
   },
 
   /**
-   * Show edit client form
+   * Show edit client data (API equivalent of show edit form)
    */
   showEditClient: async (req, res) => {
     try {
@@ -85,19 +85,22 @@ export const clientController = {
       const client = await clientService.getClientById(req.params.id, tenantId);
 
       if (!client) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Cliente não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Cliente não encontrado'
         });
       }
 
-      res.render('tenant/clients/edit', {
-        title: 'Editar Cliente',
-        client
+      res.json({
+        success: true,
+        data: { client }
       });
     } catch (error) {
       console.error('Show edit client error:', error);
-      res.redirect('/tenant/clients');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do cliente'
+      });
     }
   },
 
@@ -112,21 +115,31 @@ export const clientController = {
       const client = await clientService.updateClient(req.params.id, tenantId, validatedData);
 
       if (!client) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Cliente não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Cliente não encontrado'
         });
       }
 
       // Log update would go here
 
-      res.redirect('/tenant/clients');
+      res.json({
+        success: true,
+        message: 'Cliente atualizado com sucesso',
+        data: client
+      });
     } catch (error) {
+      if (error instanceof Error && error.name === 'ZodError') {
+        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
+        return res.status(400).json({
+          success: false,
+          error: errorMessage
+        });
+      }
+
       console.error('Update client error:', error);
-      const client = await clientService.getClientById(req.params.id, req.session.user.tenantId);
-      res.render('tenant/clients/edit', {
-        title: 'Editar Cliente',
-        client,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar cliente'
       });
     }
@@ -143,10 +156,16 @@ export const clientController = {
 
       // Log deletion would go here
 
-      res.redirect('/tenant/clients');
+      res.json({
+        success: true,
+        message: 'Cliente excluído com sucesso'
+      });
     } catch (error) {
       console.error('Delete client error:', error);
-      res.redirect('/tenant/clients');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir cliente'
+      });
     }
   }
 };

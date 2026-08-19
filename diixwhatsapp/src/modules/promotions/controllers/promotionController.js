@@ -1,13 +1,15 @@
 import { promotionService } from '../services/promotionService.js';
+import { createPromotionSchema, updatePromotionSchema } from '../validators/promotionValidator.js';
+import { auditLogRepository } from '../../../repositories/auditLogRepository.js';
 
 /**
- * Promotion Controller - HTTP request handling for Promotion entity
+ * Promotion Controller - HTTP request handling for Promotion entity (API ONLY)
  */
 export const promotionController = {
   /**
    * List all promotions for the tenant
    */
-  listPromotions: async (req, res, next) => {
+  listPromotions: async (req, res) => {
     try {
       const tenantId = req.session.user.tenantId;
       const filters = {};
@@ -19,28 +21,26 @@ export const promotionController = {
 
       const promotions = await promotionService.getPromotions(tenantId, filters);
 
-      res.render('tenant/promotions/index', {
-        page: 'promotions',
-        promotions
+      res.json({
+        success: true,
+        data: { promotions }
       });
     } catch (error) {
       console.error('List promotions error:', error);
-      res.render('tenant/promotions/index', {
-        page: 'promotions',
-        promotions: [],
-        error: 'Failed to load promotions'
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar promoções'
       });
     }
   },
 
   /**
-   * Show form to create a new promotion
+   * Show form to create a new promotion (API metadata endpoint)
    */
   showNewPromotion: (req, res) => {
-    res.render('tenant/promotions/new', {
-      page: 'promotions',
-      promotion: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados da nova promoção.'
     });
   },
 
@@ -60,7 +60,7 @@ export const promotionController = {
 
       const promotion = await promotionService.createPromotion(dataWithTenant);
 
-      // Log audit event (if audit log service is available)
+      // Log audit event
       try {
         await auditLogRepository.logCRUD(
           req.session.user.id,
@@ -71,44 +71,55 @@ export const promotionController = {
           req.ip
         );
       } catch (auditError) {
-        // Audit logging failure should not block the main operation
         console.warn('Audit log failed:', auditError.message);
       }
 
-      res.redirect('/tenant/promotions');
+      res.status(201).json({
+        success: true,
+        message: 'Promoção criada com sucesso',
+        data: promotion
+      });
     } catch (error) {
-      if (error.name === 'ZodError') {
-        return res.render('tenant/promotions/new', {
-          page: 'promotions',
-          promotion: req.body,
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({
+          success: false,
           error: error.errors.map(e => e.message).join(', ')
         });
       }
 
       console.error('Create promotion error:', error);
-      res.render('tenant/promotions/new', {
-        page: 'promotions',
-        promotion: req.body,
-        error: error.message || 'Failed to create promotion'
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao criar promoção'
       });
     }
   },
 
   /**
-   * Show form to edit an existing promotion
+   * Show form to edit an existing promotion (API data endpoint)
    */
   showEditPromotion: async (req, res) => {
     try {
       const tenantId = req.session.user.tenantId;
       const promotion = await promotionService.getPromotionById(req.params.id, tenantId);
 
-      res.render('tenant/promotions/edit', {
-        page: 'promotions',
-        promotion
+      if (!promotion) {
+        return res.status(404).json({
+          success: false,
+          error: 'Promoção não encontrada'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: { promotion }
       });
     } catch (error) {
       console.error('Show edit promotion error:', error);
-      res.redirect('/tenant/promotions');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados da promoção'
+      });
     }
   },
 
@@ -123,7 +134,10 @@ export const promotionController = {
       const promotion = await promotionService.updatePromotion(req.params.id, tenantId, validatedData);
 
       if (!promotion) {
-        return res.status(404).json({ error: 'Promotion not found' });
+        return res.status(404).json({
+          success: false,
+          error: 'Promoção não encontrada'
+        });
       }
 
       // Log audit event
@@ -140,21 +154,23 @@ export const promotionController = {
         console.warn('Audit log failed:', auditError.message);
       }
 
-      res.redirect('/tenant/promotions');
+      res.json({
+        success: true,
+        message: 'Promoção atualizada com sucesso',
+        data: promotion
+      });
     } catch (error) {
-      if (error.name === 'ZodError') {
-        return res.render('tenant/promotions/edit', {
-          page: 'promotions',
-          promotion: await promotionService.getPromotionById(req.params.id, req.session.user.tenantId),
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({
+          success: false,
           error: error.errors.map(e => e.message).join(', ')
         });
       }
 
       console.error('Update promotion error:', error);
-      res.render('tenant/promotions/edit', {
-        page: 'promotions',
-        promotion: await promotionService.getPromotionById(req.params.id, req.session.user.tenantId),
-        error: error.message || 'Failed to update promotion'
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao atualizar promoção'
       });
     }
   },
@@ -182,10 +198,16 @@ export const promotionController = {
         console.warn('Audit log failed:', auditError.message);
       }
 
-      res.redirect('/tenant/promotions');
+      res.json({
+        success: true,
+        message: 'Promoção excluída com sucesso'
+      });
     } catch (error) {
       console.error('Delete promotion error:', error);
-      res.redirect('/tenant/promotions');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir promoção'
+      });
     }
   },
 
@@ -198,19 +220,23 @@ export const promotionController = {
       const promotion = await promotionService.togglePromotionStatus(req.params.id, tenantId);
 
       if (!promotion) {
-        return res.status(404).json({ error: 'Promotion not found' });
+        return res.status(404).json({
+          success: false,
+          error: 'Promoção não encontrada'
+        });
       }
 
-      res.json({ success: true, promotion });
+      res.json({
+        success: true,
+        message: 'Status da promoção atualizado',
+        data: { promotion }
+      });
     } catch (error) {
       console.error('Toggle promotion status error:', error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
     }
   }
 };
-
-// Import schemas for validation in controller
-import { createPromotionSchema, updatePromotionSchema } from '../validators/promotionValidator.js';
-
-// Import audit log repository for optional audit logging
-import { auditLogRepository } from '../../../repositories/auditLogRepository.js';
