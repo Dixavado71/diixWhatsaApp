@@ -3,6 +3,19 @@
  * Setup de ambiente e utilitários compartilhados
  */
 
+// IMPORTANT: Load environment variables BEFORE any other imports
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envTestPath = path.join(__dirname, '..', '.env.test');
+dotenv.config({ path: envTestPath });
+
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 

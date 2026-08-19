@@ -7,6 +7,7 @@ import { sessionConfig } from './config/session.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import tenantRoutes from './routes/tenant.js';
+import clientRoutes from './modules/clients/routes/clientRoutes.js';
 import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
 import { optionalAuth } from './shared/middleware/auth.js';
 import { generalLimiter } from './shared/middleware/rateLimiter.js';
@@ -481,8 +482,11 @@ app.use(authRoutes);
 // Admin routes
 app.use('/admin', adminRoutes);
 
-// Tenant routes
+// Tenant routes (main tenant dashboard routes)
 app.use('/tenant', tenantRoutes);
+
+// Clients module routes (modularized)
+app.use('/tenant', clientRoutes);
 
 // Error handling
 app.use(notFoundHandler);

@@ -1,8 +1,16 @@
 /**
  * Teste Crítico de Isolamento Multi-Tenant
- * 
+ *
  * Este teste verifica se um Tenant NÃO consegue acessar dados de outro Tenant
  */
+
+// IMPORTANT: Load environment variables BEFORE any other imports
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '..', '.env.test') });
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
@@ -310,7 +318,9 @@ describe('Isolamento Multi-Tenant', () => {
         name: 'Promoção Loja A',
         discountType: 'PERCENTAGE',
         discountValue: 10,
-        active: true
+        active: true,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       }
     });
 
@@ -320,7 +330,9 @@ describe('Isolamento Multi-Tenant', () => {
         name: 'Promoção Loja B',
         discountType: 'FIXED',
         discountValue: 20,
-        active: true
+        active: true,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       }
     });
 
