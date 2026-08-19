@@ -1,6 +1,5 @@
 import { tenantRepository } from '../repositories/tenantRepository.js';
-import { userRepository } from '../repositories/userRepository.js';
-import { generateSlug } from '../shared/helpers/slug.js';
+import { generateSlug } from '../../../shared/helpers/slug.js';
 
 /**
  * Tenant Service - Business logic for Tenant operations
@@ -45,8 +44,7 @@ export const tenantService = {
 
     const tenant = await tenantRepository.create(data);
 
-    // Log creation
-    // Audit logging would be done in the controller
+    // Log creation would be done in the controller
 
     return tenant;
   },
@@ -97,7 +95,8 @@ export const tenantService = {
    */
   async getDashboardStats() {
     const tenantStats = await tenantRepository.getStats();
-    const userCount = await userRepository.count();
+    const userCount = await import('../../../repositories/userRepository.js')
+      .then(m => m.userRepository.count());
 
     return {
       ...tenantStats,

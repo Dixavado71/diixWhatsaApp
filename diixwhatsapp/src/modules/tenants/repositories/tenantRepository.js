@@ -1,7 +1,9 @@
-import { prisma } from '../infrastructure/database/prismaClient.js';
+import { prisma } from '../../../infrastructure/database/prismaClient.js';
 
 /**
  * Tenant Repository - Data access layer for Tenant entity
+ * IMPORTANT: Tenant operations are typically admin-only (MASTER role)
+ * and don't require tenantId filtering like other entities.
  */
 export const tenantRepository = {
   /**

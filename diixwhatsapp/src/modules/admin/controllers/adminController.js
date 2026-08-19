@@ -1,26 +1,22 @@
-import { tenantService } from '../services/tenantService.js';
-import { userRepository } from '../repositories/userRepository.js';
-import { productRepository } from '../repositories/productRepository.js';
-import { serviceRepository } from '../repositories/serviceRepository.js';
-import { promotionRepository } from '../repositories/promotionRepository.js';
-import { auditLogRepository } from '../repositories/auditLogRepository.js';
-import { createTenantSchema, updateTenantSchema } from '../validators/tenantValidator.js';
-import { createUserSchema, updateUserSchema } from '../validators/authValidator.js';
-import { hashPassword } from '../shared/helpers/password.js';
-
 /**
  * Admin Controller - Handle Master admin operations
+ * Only handles HTTP concerns (req, res, next)
+ * Delegates business logic to adminService
  */
+import { adminService } from '../services/adminService.js';
+import { createTenantSchema, updateTenantSchema } from '../../validators/tenantValidator.js';
+import { createUserSchema, updateUserSchema } from '../../validators/authValidator.js';
+
 export const adminController = {
   /**
    * Show admin dashboard
    */
   dashboard: async (req, res) => {
     try {
-      const stats = await tenantService.getDashboardStats();
+      const stats = await adminService.getDashboardStats();
       
       // Get recent tenants
-      const allTenants = await tenantService.getAllTenants({});
+      const allTenants = await adminService.getAllTenants({});
       const recentTenants = allTenants.slice(0, 10);
 
       res.render('admin/dashboard', {
@@ -46,7 +42,7 @@ export const adminController = {
    */
   listTenants: async (req, res) => {
     try {
-      const tenants = await tenantService.getAllTenants();
+      const tenants = await adminService.getAllTenants();
       
       res.render('admin/tenants/index', {
         title: 'Gerenciar Lojas',
@@ -82,10 +78,7 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      const tenant = await tenantService.createTenant(validatedData, userId, ip);
-
-      // Log creation
-      await auditLogRepository.logCRUD(userId, tenant.id, 'CREATE', 'TENANT', tenant.id, ip);
+      const tenant = await adminService.createTenant(validatedData, userId, ip);
 
       res.redirect('/admin/tenants');
     } catch (error) {
@@ -112,7 +105,7 @@ export const adminController = {
    */
   showEditTenant: async (req, res) => {
     try {
-      const tenant = await tenantService.getTenantById(req.params.id);
+      const tenant = await adminService.getTenantById(req.params.id);
       
       if (!tenant) {
         return res.status(404).render('errors/404', {
@@ -140,16 +133,13 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      await tenantService.updateTenant(req.params.id, validatedData, userId, ip);
-
-      // Log update
-      await auditLogRepository.logCRUD(userId, req.params.id, 'UPDATE', 'TENANT', req.params.id, ip);
+      await adminService.updateTenant(req.params.id, validatedData, userId, ip);
 
       res.redirect('/admin/tenants');
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const tenant = await tenantService.getTenantById(req.params.id);
+        const tenant = await adminService.getTenantById(req.params.id);
         return res.render('admin/tenants/edit', {
           title: 'Editar Loja',
           tenant,
@@ -160,7 +150,7 @@ export const adminController = {
       console.error('Update tenant error:', error);
       res.render('admin/tenants/edit', {
         title: 'Editar Loja',
-        tenant: await tenantService.getTenantById(req.params.id),
+        tenant: await adminService.getTenantById(req.params.id),
         error: error.message || 'Erro ao atualizar loja'
       });
     }
@@ -174,10 +164,7 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      const tenant = await tenantService.toggleTenantActive(req.params.id, userId, ip);
-
-      // Log action
-      await auditLogRepository.logCRUD(userId, req.params.id, tenant.active ? 'ACTIVATE' : 'DEACTIVATE', 'TENANT', req.params.id, ip);
+      const tenant = await adminService.toggleTenantActive(req.params.id, userId, ip);
 
       res.redirect('/admin/tenants');
     } catch (error) {
@@ -194,10 +181,7 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      await tenantService.deleteTenant(req.params.id);
-
-      // Log deletion
-      await auditLogRepository.logCRUD(userId, req.params.id, 'DELETE', 'TENANT', req.params.id, ip);
+      await adminService.deleteTenant(req.params.id);
 
       res.redirect('/admin/tenants');
     } catch (error) {
@@ -211,7 +195,7 @@ export const adminController = {
    */
   listUsers: async (req, res) => {
     try {
-      const users = await userRepository.findAll({});
+      const users = await adminService.getAllUsers({});
       
       res.render('admin/users/index', {
         title: 'Gerenciar Usuários',
@@ -232,7 +216,7 @@ export const adminController = {
    */
   showNewUser: async (req, res) => {
     try {
-      const tenants = await tenantService.getAllTenants({ active: true });
+      const tenants = await adminService.getAllTenants({ active: true });
       
       res.render('admin/users/new', {
         title: 'Novo Usuário',
@@ -257,28 +241,16 @@ export const adminController = {
   createUser: async (req, res) => {
     try {
       const validatedData = createUserSchema.parse(req.body);
+      const adminUserId = req.session.user.id;
+      const ip = req.ip || req.connection.remoteAddress;
       
-      // Hash password
-      validatedData.passwordHash = await hashPassword(validatedData.password);
-      delete validatedData.password;
-
-      const user = await userRepository.create(validatedData);
-
-      // Log creation
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        user.tenantId,
-        'CREATE',
-        'USER',
-        user.id,
-        req.ip || req.connection.remoteAddress
-      );
+      await adminService.createUser(validatedData, adminUserId, ip);
 
       res.redirect('/admin/users');
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const tenants = await tenantService.getAllTenants({ active: true });
+        const tenants = await adminService.getAllTenants({ active: true });
         return res.render('admin/users/new', {
           title: 'Novo Usuário',
           user: req.body,
@@ -288,7 +260,7 @@ export const adminController = {
       }
 
       console.error('Create user error:', error);
-      const tenants = await tenantService.getAllTenants({ active: true });
+      const tenants = await adminService.getAllTenants({ active: true });
       res.render('admin/users/new', {
         title: 'Novo Usuário',
         user: req.body,
@@ -303,8 +275,8 @@ export const adminController = {
    */
   showEditUser: async (req, res) => {
     try {
-      const user = await userRepository.findById(req.params.id);
-      const tenants = await tenantService.getAllTenants({ active: true });
+      const user = await adminService.getUserById(req.params.id);
+      const tenants = await adminService.getAllTenants({ active: true });
       
       if (!user) {
         return res.status(404).render('errors/404', {
@@ -333,17 +305,14 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      await userRepository.update(req.params.id, validatedData);
-
-      // Log update
-      await auditLogRepository.logCRUD(userId, null, 'UPDATE', 'USER', req.params.id, ip);
+      await adminService.updateUser(req.params.id, validatedData, userId, ip);
 
       res.redirect('/admin/users');
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const user = await userRepository.findById(req.params.id);
-        const tenants = await tenantService.getAllTenants({ active: true });
+        const user = await adminService.getUserById(req.params.id);
+        const tenants = await adminService.getAllTenants({ active: true });
         return res.render('admin/users/edit', {
           title: 'Editar Usuário',
           user,
@@ -355,8 +324,8 @@ export const adminController = {
       console.error('Update user error:', error);
       res.render('admin/users/edit', {
         title: 'Editar Usuário',
-        user: await userRepository.findById(req.params.id),
-        tenants: await tenantService.getAllTenants({ active: true }),
+        user: await adminService.getUserById(req.params.id),
+        tenants: await adminService.getAllTenants({ active: true }),
         error: error.message || 'Erro ao atualizar usuário'
       });
     }
@@ -370,10 +339,7 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      await userRepository.delete(req.params.id);
-
-      // Log deletion
-      await auditLogRepository.logCRUD(userId, null, 'DELETE', 'USER', req.params.id, ip);
+      await adminService.deleteUser(req.params.id, userId, ip);
 
       res.redirect('/admin/users');
     } catch (error) {

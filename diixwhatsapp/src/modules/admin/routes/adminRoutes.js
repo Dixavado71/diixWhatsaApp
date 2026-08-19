@@ -1,6 +1,10 @@
+/**
+ * Admin Routes - HTTP routing for admin operations
+ * All routes require Master role authentication
+ */
 import { Router } from 'express';
 import { adminController } from '../controllers/adminController.js';
-import { requireMaster } from '../shared/middleware/auth.js';
+import { requireMaster } from '../../../shared/middleware/auth.js';
 
 const router = Router();
 
