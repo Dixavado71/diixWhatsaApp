@@ -5,6 +5,7 @@ node_modules/
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
 # Environment
 .env
@@ -47,7 +48,7 @@ target/
 .DS_Store
 Thumbs.db
 
-# Archives
+# Compressed files
 *.zip
 *.gz
 *.tar

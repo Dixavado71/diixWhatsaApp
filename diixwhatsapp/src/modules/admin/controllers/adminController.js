@@ -4,8 +4,8 @@
  * Delegates business logic to adminService
  */
 import { adminService } from '../services/adminService.js';
-import { createTenantSchema, updateTenantSchema } from '../../validators/tenantValidator.js';
-import { createUserSchema, updateUserSchema } from '../../validators/authValidator.js';
+import { createTenantSchema, updateTenantSchema } from '../../tenants/validators/tenantValidator.js';
+import { createUserSchema, updateUserSchema } from '../../../validators/authValidator.js';
 
 export const adminController = {
   /**
