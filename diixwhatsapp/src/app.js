@@ -36,8 +36,13 @@ app.use(generalLimiter);
 
 // CSRF protection middleware - now returns JSON for API usage
 const csrfProtection = (req, res, next) => {
-  // Skip CSRF for GET requests
-  if (req.method === 'GET') {
+  // Skip CSRF for GET and OPTIONS requests (CORS preflight)
+  if (req.method === 'GET' || req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // Skip if session is not available
+  if (!req.session) {
     return next();
   }
   
