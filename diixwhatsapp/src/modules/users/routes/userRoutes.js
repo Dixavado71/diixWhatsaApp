@@ -16,5 +16,5 @@ router.get('/users/:id/edit', userController.showEditUser);
 router.post('/users/:id', userController.updateUser);
 router.post('/users/:id/delete', userController.deleteUser);
 
-export { router as userRoutes };
+export default router;
 

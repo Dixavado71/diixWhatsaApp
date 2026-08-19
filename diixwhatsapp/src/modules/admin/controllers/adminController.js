@@ -1,5 +1,5 @@
 /**
- * Admin Controller - Handle Master admin operations
+ * Admin Controller - Handle Master admin operations (API ONLY)
  * Only handles HTTP concerns (req, res, next)
  * Delegates business logic to adminService
  */
@@ -9,29 +9,22 @@ import { createUserSchema, updateUserSchema } from '../../../validators/authVali
 
 export const adminController = {
   /**
-   * Show admin dashboard
+   * Get admin dashboard stats and data
    */
   dashboard: async (req, res) => {
     try {
       const stats = await adminService.getDashboardStats();
-      
-      // Get recent tenants
       const allTenants = await adminService.getAllTenants({});
       const recentTenants = allTenants.slice(0, 10);
 
-      res.render('admin/dashboard', {
-        title: 'Dashboard Admin',
-        stats,
-        tenants: allTenants,
-        recentTenants
+      res.json({
+        success: true,
+        data: { stats, tenants: allTenants, recentTenants }
       });
     } catch (error) {
       console.error('Dashboard error:', error);
-      res.render('admin/dashboard', {
-        title: 'Dashboard Admin',
-        stats: { total: 0, active: 0, inactive: 0, totalUsers: 0 },
-        tenants: [],
-        recentTenants: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar dashboard'
       });
     }
@@ -43,29 +36,26 @@ export const adminController = {
   listTenants: async (req, res) => {
     try {
       const tenants = await adminService.getAllTenants();
-      
-      res.render('admin/tenants/index', {
-        title: 'Gerenciar Lojas',
-        tenants
+      res.json({
+        success: true,
+        data: { tenants }
       });
     } catch (error) {
       console.error('List tenants error:', error);
-      res.render('admin/tenants/index', {
-        title: 'Gerenciar Lojas',
-        tenants: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar lojas'
       });
     }
   },
 
   /**
-   * Show new tenant form
+   * Get metadata/info for creating a new tenant (API equivalent of show form)
    */
   showNewTenant: (req, res) => {
-    res.render('admin/tenants/new', {
-      title: 'Nova Loja',
-      tenant: null,
-      error: null
+    res.json({
+      success: true,
+      message: 'Endpoint pronto. Envie um POST com os dados da nova loja.'
     });
   },
 
@@ -80,47 +70,52 @@ export const adminController = {
 
       const tenant = await adminService.createTenant(validatedData, userId, ip);
 
-      res.redirect('/admin/tenants');
+      res.status(201).json({
+        success: true,
+        message: 'Loja criada com sucesso',
+        data: tenant
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('admin/tenants/new', {
-          title: 'Nova Loja',
-          tenant: req.body,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Create tenant error:', error);
-      res.render('admin/tenants/new', {
-        title: 'Nova Loja',
-        tenant: req.body,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar loja'
       });
     }
   },
 
   /**
-   * Show edit tenant form
+   * Get tenant data for editing (API equivalent of show edit form)
    */
   showEditTenant: async (req, res) => {
     try {
       const tenant = await adminService.getTenantById(req.params.id);
       
       if (!tenant) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Loja não encontrada'
+        return res.status(404).json({
+          success: false,
+          error: 'Loja não encontrada'
         });
       }
 
-      res.render('admin/tenants/edit', {
-        title: 'Editar Loja',
-        tenant
+      res.json({
+        success: true,
+        data: { tenant }
       });
     } catch (error) {
       console.error('Show edit tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados da loja'
+      });
     }
   },
 
@@ -135,22 +130,22 @@ export const adminController = {
 
       await adminService.updateTenant(req.params.id, validatedData, userId, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Loja atualizada com sucesso'
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const tenant = await adminService.getTenantById(req.params.id);
-        return res.render('admin/tenants/edit', {
-          title: 'Editar Loja',
-          tenant,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Update tenant error:', error);
-      res.render('admin/tenants/edit', {
-        title: 'Editar Loja',
-        tenant: await adminService.getTenantById(req.params.id),
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar loja'
       });
     }
@@ -166,10 +161,17 @@ export const adminController = {
 
       const tenant = await adminService.toggleTenantActive(req.params.id, userId, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Status da loja atualizado com sucesso',
+        data: tenant
+      });
     } catch (error) {
       console.error('Toggle tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao atualizar status da loja'
+      });
     }
   },
 
@@ -181,12 +183,18 @@ export const adminController = {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
 
-      await adminService.deleteTenant(req.params.id);
+      await adminService.deleteTenant(req.params.id, userId, ip);
 
-      res.redirect('/admin/tenants');
+      res.json({
+        success: true,
+        message: 'Loja excluída com sucesso'
+      });
     } catch (error) {
       console.error('Delete tenant error:', error);
-      res.redirect('/admin/tenants');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir loja'
+      });
     }
   },
 
@@ -196,41 +204,34 @@ export const adminController = {
   listUsers: async (req, res) => {
     try {
       const users = await adminService.getAllUsers({});
-      
-      res.render('admin/users/index', {
-        title: 'Gerenciar Usuários',
-        users
+      res.json({
+        success: true,
+        data: { users }
       });
     } catch (error) {
       console.error('List users error:', error);
-      res.render('admin/users/index', {
-        title: 'Gerenciar Usuários',
-        users: [],
+      res.status(500).json({
+        success: false,
         error: 'Erro ao carregar usuários'
       });
     }
   },
 
   /**
-   * Show new user form
+   * Get metadata (like active tenants list) for creating a new user
    */
   showNewUser: async (req, res) => {
     try {
       const tenants = await adminService.getAllTenants({ active: true });
-      
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: null,
-        tenants,
-        error: null
+      res.json({
+        success: true,
+        data: { tenants }
       });
     } catch (error) {
       console.error('Show new user error:', error);
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: null,
-        tenants: [],
-        error: 'Erro ao carregar formulário'
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados para formulário'
       });
     }
   },
@@ -244,34 +245,32 @@ export const adminController = {
       const adminUserId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
       
-      await adminService.createUser(validatedData, adminUserId, ip);
+      const newUser = await adminService.createUser(validatedData, adminUserId, ip);
 
-      res.redirect('/admin/users');
+      res.status(201).json({
+        success: true,
+        message: 'Usuário criado com sucesso',
+        data: newUser
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const tenants = await adminService.getAllTenants({ active: true });
-        return res.render('admin/users/new', {
-          title: 'Novo Usuário',
-          user: req.body,
-          tenants,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Create user error:', error);
-      const tenants = await adminService.getAllTenants({ active: true });
-      res.render('admin/users/new', {
-        title: 'Novo Usuário',
-        user: req.body,
-        tenants,
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao criar usuário'
       });
     }
   },
 
   /**
-   * Show edit user form
+   * Get user data and active tenants for editing
    */
   showEditUser: async (req, res) => {
     try {
@@ -279,20 +278,22 @@ export const adminController = {
       const tenants = await adminService.getAllTenants({ active: true });
       
       if (!user) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Usuário não encontrado'
+        return res.status(404).json({
+          success: false,
+          error: 'Usuário não encontrado'
         });
       }
 
-      res.render('admin/users/edit', {
-        title: 'Editar Usuário',
-        user,
-        tenants
+      res.json({
+        success: true,
+        data: { user, tenants }
       });
     } catch (error) {
       console.error('Show edit user error:', error);
-      res.redirect('/admin/users');
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do usuário'
+      });
     }
   },
 
@@ -307,25 +308,22 @@ export const adminController = {
 
       await adminService.updateUser(req.params.id, validatedData, userId, ip);
 
-      res.redirect('/admin/users');
+      res.json({
+        success: true,
+        message: 'Usuário atualizado com sucesso'
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        const user = await adminService.getUserById(req.params.id);
-        const tenants = await adminService.getAllTenants({ active: true });
-        return res.render('admin/users/edit', {
-          title: 'Editar Usuário',
-          user,
-          tenants,
+        return res.status(400).json({
+          success: false,
           error: errorMessage
         });
       }
 
       console.error('Update user error:', error);
-      res.render('admin/users/edit', {
-        title: 'Editar Usuário',
-        user: await adminService.getUserById(req.params.id),
-        tenants: await adminService.getAllTenants({ active: true }),
+      res.status(500).json({
+        success: false,
         error: error.message || 'Erro ao atualizar usuário'
       });
     }
@@ -341,10 +339,16 @@ export const adminController = {
 
       await adminService.deleteUser(req.params.id, userId, ip);
 
-      res.redirect('/admin/users');
+      res.json({
+        success: true,
+        message: 'Usuário excluído com sucesso'
+      });
     } catch (error) {
       console.error('Delete user error:', error);
-      res.redirect('/admin/users');
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erro ao excluir usuário'
+      });
     }
   }
 };

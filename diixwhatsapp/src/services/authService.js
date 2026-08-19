@@ -3,11 +3,14 @@ import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { comparePassword } from '../shared/helpers/password.js';
 import { logger } from '../infrastructure/database/prismaClient.js';
 
-/**
+// Cria um logger filho específico para o módulo de autenticação
+const authLogger = logger.child({ module: 'auth' });
+
+/*
  * Auth Service - Business logic for authentication
  */
 export const authService = {
-  /**
+  /*
    * Authenticate a user
    * @param {string} identifier - Username or email
    * @param {string} password - Plain text password
@@ -17,34 +20,32 @@ export const authService = {
   async authenticate(identifier, password, ip, userAgent) {
     // Try to find user by username first, then by email
     let user = await userRepository.findByUsername(identifier);
-    
     if (!user) {
       // If not found by username, try email
       user = await userRepository.findByEmail(identifier);
     }
 
     if (!user) {
-      logger.auth.failed(identifier, 'USER_NOT_FOUND', ip);
+      authLogger.warn({ identifier, ip }, 'Login failed: USER_NOT_FOUND');
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
     // Check if user is active
     if (!user.active) {
-      logger.auth.failed(identifier, 'USER_INACTIVE', ip);
+      authLogger.warn({ identifier, ip }, 'Login failed: USER_INACTIVE');
       return { success: false, error: 'Usuário está inativo' };
     }
 
     // Check if tenant is active (for tenant users)
     if (user.tenantId && user.tenant && !user.tenant.active) {
-      logger.auth.failed(identifier, 'TENANT_INACTIVE', ip);
+      authLogger.warn({ identifier, ip, tenantId: user.tenantId }, 'Login failed: TENANT_INACTIVE');
       return { success: false, error: 'Loja está inativa' };
     }
 
     // Verify password
     const isValidPassword = await comparePassword(password, user.passwordHash);
-
     if (!isValidPassword) {
-      logger.auth.failed(identifier, 'INVALID_PASSWORD', ip);
+      authLogger.warn({ identifier, ip }, 'Login failed: INVALID_PASSWORD');
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
@@ -53,7 +54,8 @@ export const authService = {
 
     // Log successful login
     await auditLogRepository.logAuth(user.id, 'LOGIN', ip, userAgent);
-    logger.auth.login(identifier, true, ip);
+
+    authLogger.info({ identifier, ip, userId: user.id }, 'Login successful');
 
     // Return user data without sensitive information
     return {
@@ -74,7 +76,7 @@ export const authService = {
     };
   },
 
-  /**
+  /*
    * Logout user
    * @param {string} userId - User ID
    * @param {string} ip - User IP address
@@ -84,7 +86,7 @@ export const authService = {
     const user = await userRepository.findById(userId);
     if (user) {
       await auditLogRepository.logAuth(userId, 'LOGOUT', ip, userAgent);
-      logger.auth.logout(user.username, ip);
+      authLogger.info({ username: user.username, ip, userId }, 'Logout successful');
     }
   }
 };
