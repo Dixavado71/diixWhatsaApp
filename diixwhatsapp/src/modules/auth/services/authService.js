@@ -1,7 +1,7 @@
-import { userRepository } from '../repositories/userRepository.js';
-import { auditLogRepository } from '../repositories/auditLogRepository.js';
-import { comparePassword } from '../shared/helpers/password.js';
-import { logger } from '../infrastructure/database/prismaClient.js';
+import { userRepository } from '../../../modules/users/repositories/userRepository.js';
+import { auditLogRepository } from '../../../repositories/auditLogRepository.js';
+import { comparePassword } from '../../../shared/helpers/password.js';
+import { logger } from '../../../infrastructure/database/prismaClient.js';
 
 /**
  * Auth Service - Business logic for authentication
