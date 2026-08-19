@@ -1,0 +1,14 @@
+<nav class="navbar">
+  <div class="navbar-brand">
+    <h1>DiixWhatsApp</h1>
+  </div>
+  <div class="navbar-menu">
+    <% if (typeof user !== 'undefined' && user) { %>
+      <span class="user-info"><%= user.username %> (<%= user.role %>)</span>
+      <form action="/logout" method="POST" style="display: inline;">
+        <%- include('csrf') %>
+        <button type="submit" class="btn-logout">Sair</button>
+      </form>
+    <% } %>
+  </div>
+</nav>
