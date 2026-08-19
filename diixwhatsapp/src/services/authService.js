@@ -9,29 +9,34 @@ import { appLogger } from '../utils/logger.js';
 export const authService = {
   /**
    * Authenticate a user
-   * @param {string} username - Username
+   * @param {string} identifier - Username or email
    * @param {string} password - Plain text password
    * @param {string} ip - User IP address
    * @param {string} userAgent - User agent string
    */
-  async authenticate(username, password, ip, userAgent) {
-    // Find user by username
-    const user = await userRepository.findByUsername(username);
+  async authenticate(identifier, password, ip, userAgent) {
+    // Try to find user by username first, then by email
+    let user = await userRepository.findByUsername(identifier);
+    
+    if (!user) {
+      // If not found by username, try email
+      user = await userRepository.findByEmail(identifier);
+    }
 
     if (!user) {
-      appLogger.auth.failed(username, 'USER_NOT_FOUND', ip);
+      appLogger.auth.failed(identifier, 'USER_NOT_FOUND', ip);
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
     // Check if user is active
     if (!user.active) {
-      appLogger.auth.failed(username, 'USER_INACTIVE', ip);
+      appLogger.auth.failed(identifier, 'USER_INACTIVE', ip);
       return { success: false, error: 'Usuário está inativo' };
     }
 
     // Check if tenant is active (for tenant users)
     if (user.tenantId && user.tenant && !user.tenant.active) {
-      appLogger.auth.failed(username, 'TENANT_INACTIVE', ip);
+      appLogger.auth.failed(identifier, 'TENANT_INACTIVE', ip);
       return { success: false, error: 'Loja está inativa' };
     }
 
@@ -39,7 +44,7 @@ export const authService = {
     const isValidPassword = await comparePassword(password, user.passwordHash);
 
     if (!isValidPassword) {
-      appLogger.auth.failed(username, 'INVALID_PASSWORD', ip);
+      appLogger.auth.failed(identifier, 'INVALID_PASSWORD', ip);
       return { success: false, error: 'Usuário ou senha inválidos' };
     }
 
@@ -48,7 +53,7 @@ export const authService = {
 
     // Log successful login
     await auditLogRepository.logAuth(user.id, 'LOGIN', ip, userAgent);
-    appLogger.auth.login(username, true, ip);
+    appLogger.auth.login(identifier, true, ip);
 
     // Return user data without sensitive information
     return {
