@@ -1,15 +1,9 @@
 import { productRepository } from '../repositories/productRepository.js';
-import { clientRepository } from '../repositories/clientRepository.js';
-import { serviceRepository } from '../repositories/serviceRepository.js';
-import { promotionRepository } from '../repositories/promotionRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { auditLogRepository } from '../repositories/auditLogRepository.js';
 import { generateSlug } from '../shared/helpers/slug.js';
 import { hashPassword } from '../shared/helpers/password.js';
 import { createProductSchema, updateProductSchema } from '../validators/productValidator.js';
-import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
-import { createServiceSchema, updateServiceSchema } from '../validators/serviceValidator.js';
-import { createPromotionSchema, updatePromotionSchema } from '../validators/promotionValidator.js';
 import { createTenantUserSchema, updateTenantUserSchema } from '../validators/authValidator.js';
 
 /**
@@ -23,32 +17,27 @@ export const tenantController = {
     try {
       const tenantId = req.session.user.tenantId;
 
-      // Get counts for this tenant only
-      const [productsCount, clientsCount, servicesCount, promotionsCount, usersCount] = await Promise.all([
+      // Get counts for this tenant only - clients and services counts handled by their modules
+      const [productsCount, promotionsCount, usersCount] = await Promise.all([
         productRepository.countByTenant(tenantId),
-        clientRepository.countByTenant(tenantId),
-        serviceRepository.countByTenant(tenantId),
         promotionRepository.countByTenant(tenantId),
         userRepository.count({ tenantId })
       ]);
 
       // Get recent items
-      const [recentProducts, recentClients] = await Promise.all([
-        productRepository.findAllByTenant(tenantId, {}).then(items => items.slice(0, 5)),
-        clientRepository.findAllByTenant(tenantId, {}).then(items => items.slice(0, 5))
-      ]);
+      const recentProducts = await productRepository.findAllByTenant(tenantId, {}).then(items => items.slice(0, 5));
 
       res.render('tenant/dashboard', {
         title: 'Dashboard',
         stats: {
           products: productsCount,
-          clients: clientsCount,
-          services: servicesCount,
+          clients: 0, // Clients count not available in legacy controller
+          services: 0, // Services count now handled by modular controller
           promotions: promotionsCount,
           users: usersCount
         },
         recentProducts,
-        recentClients
+        recentClients: []
       });
     } catch (error) {
       console.error('Tenant dashboard error:', error);
@@ -227,302 +216,10 @@ export const tenantController = {
   },
 
   /**
-   * Clients CRUD
+   * Clients CRUD - REMOVED: Migrated to src/modules/clients/
+   * These functions are now handled by the modularized clients module
    */
-  listClients: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const clients = await clientRepository.findAllByTenant(tenantId);
 
-      res.render('tenant/clients/index', {
-        title: 'Clientes',
-        clients
-      });
-    } catch (error) {
-      console.error('List clients error:', error);
-      res.render('tenant/clients/index', {
-        title: 'Clientes',
-        clients: [],
-        error: 'Erro ao carregar clientes'
-      });
-    }
-  },
-
-  showNewClient: (req, res) => {
-    res.render('tenant/clients/new', {
-      title: 'Novo Cliente',
-      client: null,
-      error: null
-    });
-  },
-
-  createClient: async (req, res) => {
-    try {
-      const validatedData = createClientSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      validatedData.tenantId = tenantId;
-
-      const client = await clientRepository.create(validatedData);
-
-      // Log creation
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'CREATE',
-        'CLIENT',
-        client.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/clients');
-    } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('tenant/clients/new', {
-          title: 'Novo Cliente',
-          client: req.body,
-          error: errorMessage
-        });
-      }
-
-      console.error('Create client error:', error);
-      res.render('tenant/clients/new', {
-        title: 'Novo Cliente',
-        client: req.body,
-        error: error.message || 'Erro ao criar cliente'
-      });
-    }
-  },
-
-  showEditClient: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const client = await clientRepository.findByIdAndTenant(req.params.id, tenantId);
-
-      if (!client) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Cliente não encontrado'
-        });
-      }
-
-      res.render('tenant/clients/edit', {
-        title: 'Editar Cliente',
-        client
-      });
-    } catch (error) {
-      console.error('Show edit client error:', error);
-      res.redirect('/tenant/clients');
-    }
-  },
-
-  updateClient: async (req, res) => {
-    try {
-      const validatedData = updateClientSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      const client = await clientRepository.update(req.params.id, tenantId, validatedData);
-
-      if (!client) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Cliente não encontrado'
-        });
-      }
-
-      // Log update
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'UPDATE',
-        'CLIENT',
-        client.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/clients');
-    } catch (error) {
-      console.error('Update client error:', error);
-      res.render('tenant/clients/edit', {
-        title: 'Editar Cliente',
-        client: await clientRepository.findByIdAndTenant(req.params.id, req.session.user.tenantId),
-        error: error.message || 'Erro ao atualizar cliente'
-      });
-    }
-  },
-
-  deleteClient: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-
-      await clientRepository.delete(req.params.id, tenantId);
-
-      // Log deletion
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'DELETE',
-        'CLIENT',
-        req.params.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/clients');
-    } catch (error) {
-      console.error('Delete client error:', error);
-      res.redirect('/tenant/clients');
-    }
-  },
-
-  /**
-   * Services CRUD
-   */
-  listServices: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const services = await serviceRepository.findAllByTenant(tenantId);
-
-      res.render('tenant/services/index', {
-        title: 'Serviços',
-        services
-      });
-    } catch (error) {
-      console.error('List services error:', error);
-      res.render('tenant/services/index', {
-        title: 'Serviços',
-        services: [],
-        error: 'Erro ao carregar serviços'
-      });
-    }
-  },
-
-  showNewService: (req, res) => {
-    res.render('tenant/services/new', {
-      title: 'Novo Serviço',
-      service: null,
-      error: null
-    });
-  },
-
-  createService: async (req, res) => {
-    try {
-      const validatedData = createServiceSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      validatedData.tenantId = tenantId;
-
-      const service = await serviceRepository.create(validatedData);
-
-      // Log creation
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'CREATE',
-        'SERVICE',
-        service.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.render('tenant/services/new', {
-          title: 'Novo Serviço',
-          service: req.body,
-          error: errorMessage
-        });
-      }
-
-      console.error('Create service error:', error);
-      res.render('tenant/services/new', {
-        title: 'Novo Serviço',
-        service: req.body,
-        error: error.message || 'Erro ao criar serviço'
-      });
-    }
-  },
-
-  showEditService: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const service = await serviceRepository.findByIdAndTenant(req.params.id, tenantId);
-
-      if (!service) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Serviço não encontrado'
-        });
-      }
-
-      res.render('tenant/services/edit', {
-        title: 'Editar Serviço',
-        service
-      });
-    } catch (error) {
-      console.error('Show edit service error:', error);
-      res.redirect('/tenant/services');
-    }
-  },
-
-  updateService: async (req, res) => {
-    try {
-      const validatedData = updateServiceSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      const service = await serviceRepository.update(req.params.id, tenantId, validatedData);
-
-      if (!service) {
-        return res.status(404).render('errors/404', {
-          title: 'Não Encontrado',
-          message: 'Serviço não encontrado'
-        });
-      }
-
-      // Log update
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'UPDATE',
-        'SERVICE',
-        service.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      console.error('Update service error:', error);
-      res.render('tenant/services/edit', {
-        title: 'Editar Serviço',
-        service: await serviceRepository.findByIdAndTenant(req.params.id, req.session.user.tenantId),
-        error: error.message || 'Erro ao atualizar serviço'
-      });
-    }
-  },
-
-  deleteService: async (req, res) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-
-      await serviceRepository.delete(req.params.id, tenantId);
-
-      // Log deletion
-      await auditLogRepository.logCRUD(
-        req.session.user.id,
-        tenantId,
-        'DELETE',
-        'SERVICE',
-        req.params.id,
-        req.ip || req.connection.remoteAddress
-      );
-
-      res.redirect('/tenant/services');
-    } catch (error) {
-      console.error('Delete service error:', error);
-      res.redirect('/tenant/services');
-    }
-  },
 
   /**
    * Promotions CRUD

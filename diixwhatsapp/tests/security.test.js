@@ -3,6 +3,19 @@
  * Testa proteções críticas: autenticação, autorização, tenant isolation, CSRF, rate limiting
  */
 
+// IMPORTANT: Load environment variables BEFORE any other imports
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envTestPath = path.join(__dirname, '..', '.env.test');
+dotenv.config({ path: envTestPath });
+
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { createServer } from 'http';
