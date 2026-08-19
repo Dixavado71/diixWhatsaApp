@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { appLogger } from '../utils/logger.js';
 
 /**
@@ -16,14 +17,39 @@ export function errorHandler(err, req, res, next) {
   const isDev = process.env.NODE_ENV === 'development';
 
   // Handle Prisma errors
-  if (err.code) {
-    if (err.code === 'P2002') {
-      return res.status(409).render('errors/500', {
-        title: 'Conflito',
-        message: 'Já existe um registro com estes dados.',
-        error: isDev ? err.message : undefined
-      });
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    switch (err.code) {
+      case 'P2002': // Unique constraint violation
+        return res.status(409).render('errors/500', {
+          title: 'Conflito',
+          message: 'Já existe um registro com estes dados.',
+          error: isDev ? err.message : undefined
+        });
+      case 'P2003': // Foreign key constraint violation
+        return res.status(400).render('errors/500', {
+          title: 'Erro de Referência',
+          message: 'Este registro está sendo utilizado em outro lugar.',
+          error: isDev ? err.message : undefined
+        });
+      case 'P2025': // Record not found
+        return res.status(404).render('errors/500', {
+          title: 'Não Encontrado',
+          message: 'Registro não encontrado.',
+          error: isDev ? err.message : undefined
+        });
+      default:
+        appLogger.db.error('Prisma error', err.code, err);
+        break;
     }
+  }
+
+  // Handle JSON parse errors
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).render('errors/500', {
+      title: 'Requisição Inválida',
+      message: 'Dados enviados em formato inválido.',
+      error: isDev ? err.message : undefined
+    });
   }
 
   // Default to 500
