@@ -11,6 +11,9 @@ dotenv.config(); // Override with .env if exists
 import { prisma } from '../src/infrastructure/database/prismaClient.js';
 import bcrypt from 'bcrypt';
 
+// Export prisma for tests that need direct access
+export { prisma };
+
 /**
  * Cria um tenant de teste com dados padrão
  */

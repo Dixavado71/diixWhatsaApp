@@ -319,13 +319,16 @@ describe('Isolamento Multi-Tenant', () => {
   });
 
   it('DEVE isolar promoções por tenant', async () => {
+    const now = new Date();
     const promoA = await prisma.promotion.create({
       data: {
         tenantId: tenantA.id,
         name: 'Promoção Loja A',
         discountType: 'PERCENTAGE',
         discountValue: 10,
-        active: true
+        active: true,
+        startDate: now,
+        endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
       }
     });
 
@@ -335,7 +338,9 @@ describe('Isolamento Multi-Tenant', () => {
         name: 'Promoção Loja B',
         discountType: 'FIXED',
         discountValue: 20,
-        active: true
+        active: true,
+        startDate: now,
+        endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
       }
     });
 
