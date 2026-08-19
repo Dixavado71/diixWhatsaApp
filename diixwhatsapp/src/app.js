@@ -10,6 +10,7 @@ import clientRoutes from './modules/clients/routes/clientRoutes.js';
 import serviceRoutes from './modules/services/routes/serviceRoutes.js';
 import promotionRoutes from './modules/promotions/routes/promotionRoutes.js';
 import tenantRoutes from './modules/tenants/routes/tenantRoutes.js';
+import productRoutes from './modules/products/routes/productRoutes.js';
 import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
 import { optionalAuth } from './shared/middleware/auth.js';
 import { generalLimiter } from './shared/middleware/rateLimiter.js';
@@ -486,6 +487,9 @@ app.use('/admin', adminRoutes);
 
 // Tenant routes (main tenant dashboard routes)
 app.use('/tenant', tenantRoutes);
+
+// Products module routes (modularized)
+app.use('/tenant', productRoutes);
 
 // Clients module routes (modularized)
 app.use('/tenant', clientRoutes);
