@@ -2,26 +2,92 @@
 # Dependencies
 node_modules/
 
-# Logs and temp files
+# Build artifacts
+dist/
+build/
+public/css/app.css
+public/js/app.js
+
+# Views - since EJS files were removed, ignore the entire views directory if it exists
+views/
+
+# Logs
 *.log
-*.tmp
 
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
 
-# Editors
+# Editor/IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# Python
+# System
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-venv/
-.venv/
-.env
+*.so
+*.egg-info/
+.eggs/
+
+# Node.js specific
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compiled/Binary
+*.exe
+*.dll
+*.so
+*.a
+*.o
+*.obj
+*.out
+*.class
+
+# Cache directories
+.cache/
+.mypy_cache/
+.pytest_cache/
+.gradle/
+target/
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
