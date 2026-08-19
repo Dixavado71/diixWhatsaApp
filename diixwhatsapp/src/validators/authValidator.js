@@ -5,10 +5,10 @@ import { z } from 'zod';
  */
 
 export const loginSchema = z.object({
-  username: z
+  identifier: z
     .string()
-    .min(1, 'Usuário é obrigatório')
-    .max(100, 'Usuário muito longo'),
+    .min(1, 'Usuário ou e-mail é obrigatório')
+    .max(100, 'Usuário ou e-mail muito longo'),
   password: z
     .string()
     .min(1, 'Senha é obrigatória')

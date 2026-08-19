@@ -27,7 +27,7 @@ export const authController = {
       authenticated: false,
       message: 'Please provide credentials to login',
       endpoint: 'POST /login',
-      requiredFields: ['username', 'password']
+      requiredFields: ['identifier (username or email)', 'password']
     });
   },
 
@@ -43,9 +43,9 @@ export const authController = {
       const ip = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('user-agent') || '';
 
-      // Authenticate
+      // Authenticate (accepts username or email in 'identifier' field)
       const result = await authService.authenticate(
-        validatedData.username,
+        validatedData.identifier,
         validatedData.password,
         ip,
         userAgent
