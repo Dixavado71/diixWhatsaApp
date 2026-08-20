@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { passwordSchema } from '../../../shared/helpers/password.js';
 
 /**
  * User validation schemas
@@ -14,10 +15,7 @@ export const createUserSchema = z.object({
     .string()
     .email('E-mail inválido')
     .max(100, 'E-mail muito longo'),
-  password: z
-    .string()
-    .min(6, 'Senha deve ter pelo menos 6 caracteres')
-    .max(100, 'Senha muito longa'),
+  password: passwordSchema,
   name: z
     .string()
     .min(1, 'Nome é obrigatório')
