@@ -1,0 +1,102 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop, master ]
+  pull_request:
+    branches: [ main, develop, master ]
+
+jobs:
+  ci:
+    name: 🔍 CI Pipeline
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: diixwhatsapp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔨 Generate Prisma Client
+        run: npm run db:generate
+
+      - name: 🔍 Lint code
+        run: |
+          echo "Running syntax checks..."
+          node --check src/app.js
+          node --check src/server.js
+          find src -name "*.js" -exec node --check {} \;
+          echo "✅ All files passed syntax check"
+
+      - name: 🗄️ Run database migrations
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+        run: npm run db:migrate
+
+      - name: ✅ Validate Prisma schema
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+        run: npx prisma validate
+
+      - name: 🧪 Run tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: npm test
+
+      - name: 📊 Generate coverage report
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/diixwhatsapp_test
+          SESSION_SECRET: test-session-secret-key-12345678901234567890
+          CSRF_SECRET: test-csrf-secret-key-12345678901234567890
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: 📁 Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: 🔒 Security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true

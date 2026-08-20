@@ -2,14 +2,28 @@ import { prisma } from '../infrastructure/database/prismaClient.js';
 
 /**
  * Audit Log Repository - Data access layer for AuditLog entity
+ * 
+ * All write operations are performed asynchronously to avoid blocking
+ * the response cycle. Uses setImmediate() for in-memory queuing.
  */
 export const auditLogRepository = {
   /**
-   * Create a new audit log entry
+   * Create a new audit log entry (asynchronous, non-blocking)
    */
   async create(data) {
-    return prisma.auditLog.create({
-      data
+    // Use setImmediate to defer database write to next event loop iteration
+    // This ensures the response is sent without waiting for the log to be written
+    return new Promise((resolve) => {
+      setImmediate(async () => {
+        try {
+          await prisma.auditLog.create({ data });
+          resolve({ success: true });
+        } catch (error) {
+          // Log error but don't throw - audit logging should not break main flow
+          console.error('[AuditLog] Failed to create log entry:', error.message);
+          resolve({ success: false, error: error.message });
+        }
+      });
     });
   },
 
