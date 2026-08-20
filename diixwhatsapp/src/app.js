@@ -69,10 +69,15 @@ const csrfProtection = csurf({
   }
 });
 
-// Apply CSRF protection to all routes except GET and OPTIONS
+// Apply CSRF protection to all routes except GET, OPTIONS, and login endpoints
 app.use((req, res, next) => {
   // Skip CSRF for safe methods (GET, HEAD, OPTIONS)
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // Skip CSRF for login/logout endpoints (no valid session yet)
+  if (req.path === '/login' || req.path === '/logout') {
     return next();
   }
   
