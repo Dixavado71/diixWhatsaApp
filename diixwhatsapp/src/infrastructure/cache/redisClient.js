@@ -13,6 +13,8 @@ const logger = pino({
   }
 });
 
+export { logger };
+
 /**
  * Redis Client Singleton
  *
