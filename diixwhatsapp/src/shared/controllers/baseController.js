@@ -202,7 +202,12 @@ export function createCRUDController({
 
 /**
  * Middleware para extrair contexto de autenticação
- * Deve ser usado ANTES dos handlers do controller
+ * Deve ser usado APÓS o middleware de autenticação (requireAuth, etc.)
+ * 
+ * Este middleware centraliza a extração de tenantId, userId, role e ip
+ * do objeto req.session e os injeta em req.auth para uso nos controllers.
+ * 
+ * Princípio: Controllers não devem acessar req.session diretamente.
  * 
  * Exemplo de uso:
  * ```javascript
@@ -218,7 +223,8 @@ export function extractAuthContext(req, res, next) {
     req.auth = {
       tenantId: req.session.user.tenantId,
       userId: req.session.user.id,
-      ip: req.ip || req.connection.remoteAddress
+      role: req.session.user.role,
+      ip: getClientIp(req)
     };
 
     next();
@@ -227,7 +233,31 @@ export function extractAuthContext(req, res, next) {
   }
 }
 
+/**
+ * Obtém o IP real do cliente, considerando proxies reversos
+ * @param {Object} req - Express request object
+ * @returns {string} IP do cliente
+ */
+export function getClientIp(req) {
+  // Verifica headers de proxy reverso (nginx, haproxy, etc.)
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    // x-forwarded-for pode conter múltiplos IPs, pegamos o primeiro
+    return forwarded.split(',')[0].trim();
+  }
+  
+  // Header alternativo para Cloudflare
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+  if (cfConnectingIp) {
+    return cfConnectingIp;
+  }
+  
+  // Fallback para req.ip (que usa trust proxy)
+  return req.ip || req.connection?.remoteAddress || 'unknown';
+}
+
 export default {
   createCRUDController,
-  extractAuthContext
+  extractAuthContext,
+  getClientIp
 };
