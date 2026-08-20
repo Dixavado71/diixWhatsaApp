@@ -1,5 +1,9 @@
 /**
  * Product Service - Business logic layer for Product entity
+ * 
+ * REFACTORED: Adiciona aliases para métodos CRUD genéricos
+ * para compatibilidade com createCRUDController.
+ * 
  * Responsibilities:
  * - Handle business rules
  * - Manage audit logging for state-changing operations
@@ -17,6 +21,13 @@ export const productService = {
   },
 
   /**
+   * Alias para getAllProducts - usado pelo BaseController
+   */
+  async getAll(tenantId, filters = {}) {
+    return this.getAllProducts(tenantId, filters);
+  },
+
+  /**
    * Get a product by ID for a specific tenant
    */
   async getProductById(id, tenantId) {
@@ -25,6 +36,13 @@ export const productService = {
       throw new Error('Produto não encontrado');
     }
     return product;
+  },
+
+  /**
+   * Alias para getProductById - usado pelo BaseController
+   */
+  async getById(id, tenantId) {
+    return this.getProductById(id, tenantId);
   },
 
   /**
@@ -47,6 +65,13 @@ export const productService = {
   },
 
   /**
+   * Alias para createProduct - usado pelo BaseController
+   */
+  async create(data, tenantId, userId, ip) {
+    return this.createProduct(data, tenantId, userId, ip);
+  },
+
+  /**
    * Update a product
    */
   async updateProduct(id, tenantId, data, adminUserId, ip) {
@@ -66,6 +91,13 @@ export const productService = {
   },
 
   /**
+   * Alias para updateProduct - usado pelo BaseController
+   */
+  async update(id, tenantId, data, userId, ip) {
+    return this.updateProduct(id, tenantId, data, userId, ip);
+  },
+
+  /**
    * Delete a product
    */
   async deleteProduct(id, tenantId, adminUserId, ip) {
@@ -82,6 +114,13 @@ export const productService = {
     await auditLogRepository.logCRUD(adminUserId, tenantId, 'DELETE', 'PRODUCT', id, ip);
 
     return true;
+  },
+
+  /**
+   * Alias para deleteProduct - usado pelo BaseController
+   */
+  async delete(id, tenantId, userId, ip) {
+    return this.deleteProduct(id, tenantId, userId, ip);
   },
 
   /**

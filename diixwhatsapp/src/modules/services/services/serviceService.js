@@ -1,14 +1,24 @@
-import { serviceRepository } from '../repositories/serviceRepository.js';
-
 /**
  * Service Service - Business logic layer for Service entity
+ * 
+ * REFACTORED: Adiciona aliases para métodos CRUD genéricos
+ * para compatibilidade com createCRUDController.
  */
+import { serviceRepository } from '../repositories/serviceRepository.js';
+
 export const serviceService = {
   /**
    * Get all services for a tenant with optional filters
    */
   async getAllServices(tenantId, filters = {}) {
     return serviceRepository.findAllByTenant(tenantId, filters);
+  },
+
+  /**
+   * Alias para getAllServices - usado pelo BaseController
+   */
+  async getAll(tenantId, filters = {}) {
+    return this.getAllServices(tenantId, filters);
   },
 
   /**
@@ -23,6 +33,13 @@ export const serviceService = {
   },
 
   /**
+   * Alias para getServiceById - usado pelo BaseController
+   */
+  async getById(id, tenantId) {
+    return this.getServiceById(id, tenantId);
+  },
+
+  /**
    * Create a new service
    */
   async createService(tenantId, data) {
@@ -31,8 +48,16 @@ export const serviceService = {
       ...data,
       tenantId
     };
-    
+
     return serviceRepository.create(serviceData);
+  },
+
+  /**
+   * Alias para createService - usado pelo BaseController
+   * Assinatura: create(data, tenantId, userId, ip)
+   */
+  async create(data, tenantId, userId, ip) {
+    return this.createService(tenantId, data);
   },
 
   /**
@@ -47,6 +72,14 @@ export const serviceService = {
   },
 
   /**
+   * Alias para updateService - usado pelo BaseController
+   * Assinatura: update(id, tenantId, data, userId, ip)
+   */
+  async update(id, tenantId, data, userId, ip) {
+    return this.updateService(id, tenantId, data);
+  },
+
+  /**
    * Delete a service with tenant isolation
    */
   async deleteService(id, tenantId) {
@@ -55,6 +88,14 @@ export const serviceService = {
       throw new Error('Service not found or delete failed');
     }
     return deleted;
+  },
+
+  /**
+   * Alias para deleteService - usado pelo BaseController
+   * Assinatura: delete(id, tenantId, userId, ip)
+   */
+  async delete(id, tenantId, userId, ip) {
+    return this.deleteService(id, tenantId);
   },
 
   /**
@@ -82,4 +123,3 @@ export const serviceService = {
     return serviceRepository.searchByTenant(tenantId, searchTerm);
   }
 };
-
