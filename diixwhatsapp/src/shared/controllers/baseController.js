@@ -1,9 +1,9 @@
 /**
  * Base Controller - Generic CRUD Utility
- * 
+ *
  * Abstrai o padrão CRUD repetitivo, permitindo que controllers
  * específicos sejam reduzidos em até 60%.
- * 
+ *
  * Uso:
  * ```javascript
  * export const clientController = createCRUDController({
@@ -19,6 +19,7 @@
  * @typedef {Object} AuthContext
  * @property {string} tenantId - ID do tenant
  * @property {string} userId - ID do usuário autenticado
+ * @property {string} role - Role do usuário (MASTER, TENANT_ADMIN, etc.)
  * @property {string} ip - IP da requisição
  */
 
@@ -38,7 +39,7 @@
 
 /**
  * Cria um controller CRUD genérico
- * 
+ *
  * @param {Object} options
  * @param {CRUDService} options.service - Serviço com métodos CRUD
  * @param {string} options.entityName - Nome da entidade (ex: 'client', 'product')
@@ -73,6 +74,7 @@ export function createCRUDController({
      */
     list: async (req, res, next) => {
       try {
+        // Usa req.auth em vez de req.session (Inversão de Dependência)
         const { tenantId } = req.auth;
         const items = await service.getAll(tenantId);
 
@@ -102,10 +104,11 @@ export function createCRUDController({
      */
     create: async (req, res, next) => {
       try {
-        const validatedData = createSchema 
-          ? createSchema.parse(req.body) 
+        const validatedData = createSchema
+          ? createSchema.parse(req.body)
           : req.body;
-        
+
+        // Usa req.auth em vez de req.session (Inversão de Dependência)
         const { tenantId, userId, ip } = req.auth;
 
         const item = await service.create(validatedData, tenantId, userId, ip);
@@ -126,6 +129,7 @@ export function createCRUDController({
      */
     showEdit: async (req, res, next) => {
       try {
+        // Usa req.auth em vez de req.session (Inversão de Dependência)
         const { tenantId } = req.auth;
         const item = await service.getById(req.params.id, tenantId);
 
@@ -151,10 +155,11 @@ export function createCRUDController({
      */
     update: async (req, res, next) => {
       try {
-        const validatedData = updateSchema 
-          ? updateSchema.parse(req.body) 
+        const validatedData = updateSchema
+          ? updateSchema.parse(req.body)
           : req.body;
-        
+
+        // Usa req.auth em vez de req.session (Inversão de Dependência)
         const { tenantId, userId, ip } = req.auth;
 
         const item = await service.update(req.params.id, tenantId, validatedData, userId, ip);
@@ -182,6 +187,7 @@ export function createCRUDController({
      */
     delete: async (req, res, next) => {
       try {
+        // Usa req.auth em vez de req.session (Inversão de Dependência)
         const { tenantId, userId, ip } = req.auth;
 
         await service.delete(req.params.id, tenantId, userId, ip);
@@ -203,7 +209,7 @@ export function createCRUDController({
 /**
  * Middleware para extrair contexto de autenticação
  * Deve ser usado ANTES dos handlers do controller
- * 
+ *
  * Exemplo de uso:
  * ```javascript
  * router.get('/clients', authMiddleware, extractAuthContext, clientController.list);
@@ -212,13 +218,18 @@ export function createCRUDController({
 export function extractAuthContext(req, res, next) {
   try {
     if (!req.session || !req.session.user) {
-      return next(new Error('Usuário não autenticado'));
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado'
+      });
     }
 
+    // Extrai e padroniza o contexto de autenticação
     req.auth = {
       tenantId: req.session.user.tenantId,
       userId: req.session.user.id,
-      ip: req.ip || req.connection.remoteAddress
+      role: req.session.user.role,
+      ip: req.ip || req.connection?.remoteAddress || 'unknown'
     };
 
     next();

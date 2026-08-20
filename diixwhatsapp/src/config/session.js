@@ -1,7 +1,7 @@
 import session from 'express-session';
 import RedisStore from 'connect-redis';
 import { config } from './env.js';
-import { getRedisClient } from '../infrastructure/cache/redisClient.js';
+import { getRedisClient, logger } from '../infrastructure/cache/redisClient.js';
 
 /**
  * Session Configuration with Redis Store
@@ -15,12 +15,11 @@ try {
   // Initialize Redis store
   const redisClient = getRedisClient();
   store = new RedisStore({ client: redisClient });
-  console.log('[Session] Using Redis store for sessions');
+  logger.info('[Session] Using Redis store for sessions');
 } catch (error) {
-  console.warn('[Session] Redis not available, falling back to memory store (NOT suitable for production)');
+  logger.warn('[Session] Redis not available, falling back to memory store (NOT suitable for production)');
   // Fallback for development only - should never be used in production
-  const sessionModule = await import('express-session');
-  store = new sessionModule.MemoryStore();
+  store = new session.MemoryStore();
 }
 
 export const sessionConfig = session({
