@@ -16,8 +16,16 @@ import { asyncHandler, errorHandler, notFoundHandler } from './shared/middleware
 import { optionalAuth } from './shared/middleware/auth.js';
 import { generalLimiter } from './shared/middleware/rateLimiter.js';
 import { prisma, logger } from './infrastructure/database/prismaClient.js';
+import { getRedisClient, checkRedisHealth } from './infrastructure/cache/redisClient.js';
 
 const app = express();
+
+// ============================================================================
+// API Versioning - All routes mounted under /api/v1/
+// This allows for future API evolution without breaking changes
+// ============================================================================
+const apiRouter = express.Router();
+const API_VERSION = 'v1';
 
 // CORS Configuration
 const corsOptions = {
@@ -159,29 +167,75 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'DiixWhatsApp' });
+// Health check - Basic service health
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "DiixWhatsApp" });
+});
+
+/**
+ * Advanced Health Check - Verifies Database and Redis connections
+ * Returns 200 OK if all services are healthy, 503 Service Unavailable otherwise
+ */
+app.get("/health/advanced", async (req, res) => {
+  const healthStatus = {
+    status: "ok",
+    service: "DiixWhatsApp",
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
+    checks: {}
+  };
+  
+  let allHealthy = true;
+  
+  // Check Database
+  try {
+    await prisma.$queryRaw`SELECT 1 as connected`;
+    healthStatus.checks.database = { status: "healthy", latency: "unknown" };
+  } catch (error) {
+    healthStatus.checks.database = { 
+      status: "unhealthy", 
+      error: error.message 
+    };
+    allHealthy = false;
+    logger.error("Health check DB failed", { error: error.message });
+  }
+  
+  // Check Redis
+  try {
+    const redisHealthy = await checkRedisHealth();
+    healthStatus.checks.redis = { 
+      status: redisHealthy ? "healthy" : "unhealthy"
+    };
+    if (!redisHealthy) {
+      allHealthy = false;
+    }
+  } catch (error) {
+    healthStatus.checks.redis = { 
+      status: "unhealthy", 
+      error: error.message 
+    };
+    allHealthy = false;
+    logger.error("Health check Redis failed", { error: error.message });
+  }
+  
+  // Return appropriate status code
+  const statusCode = allHealthy ? 200 : 503;
+  res.status(statusCode).json(healthStatus);
 });
 
 /**
  * Database Health Check - Uses static prisma import to avoid race conditions
  * The prisma client is a singleton already initialized at app startup
  */
-app.get('/health/db', async (req, res) => {
+app.get("/health/db", async (req, res) => {
   try {
-    // Direct use of the singleton prisma instance (already initialized via static import)
-    // No dynamic import needed - avoids race conditions
     await prisma.$queryRaw`SELECT 1 as connected`;
-    
-    res.json({ status: 'ok', database: 'connected' });
+    res.json({ status: "ok", database: "connected" });
   } catch (error) {
-    // Log error using pino logger
-    logger.error('Health check DB failed', { error: error.message });
-    
+    logger.error("Health check DB failed", { error: error.message });
     res.status(500).json({ 
-      status: 'error', 
-      database: 'disconnected', 
+      status: "error", 
+      database: "disconnected", 
       error: error.message 
     });
   }
@@ -510,31 +564,41 @@ app.get('/api-docs', (req, res) => {
   });
 });
 
-// Auth routes
-app.use(authRoutes);
 
-// Admin routes
-app.use('/admin', adminRoutes);
+// ============================================================================
+// API Routes - Mounted under /api/v1/ prefix for versioning
+// ============================================================================
 
-// Tenant routes (main tenant dashboard routes)
-app.use('/tenant', tenantRoutes);
+// Auth routes (public)
+apiRouter.use('/auth', authRoutes);
+
+// Admin routes (requires MASTER role)
+apiRouter.use('/admin', adminRoutes);
+
+// Tenant routes (main tenant dashboard routes - requires TENANT role)
+apiRouter.use('/tenant', tenantRoutes);
 
 // Products module routes (modularized)
-app.use('/tenant', productRoutes);
+apiRouter.use('/tenant/products', productRoutes);
 
 // Clients module routes (modularized)
-app.use('/tenant', clientRoutes);
+apiRouter.use('/tenant/clients', clientRoutes);
 
 // Services module routes (modularized)
-app.use('/tenant', serviceRoutes);
+apiRouter.use('/tenant/services', serviceRoutes);
 
 // Promotions module routes (modularized)
-app.use('/tenant', promotionRoutes);
+apiRouter.use('/tenant/promotions', promotionRoutes);
 
 // Users module routes (modularized) - Admin only for user management
-app.use('/admin', userRoutes);
+apiRouter.use('/admin/users', userRoutes);
 
-// Error handling
+// Mount all API routes under /api/v1/
+app.use(`/api/${API_VERSION}`, apiRouter);
+
+// ============================================================================
+// Error Handling - Must be last
+// ============================================================================
 app.use(notFoundHandler);
 app.use(errorHandler);
 
