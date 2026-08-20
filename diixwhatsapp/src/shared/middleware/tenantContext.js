@@ -1,17 +1,22 @@
+import { getClientIp } from './rateLimiter.js';
+
 /**
  * Tenant Context Middleware - Inject tenant information into request
- * This middleware extracts tenant information from the authenticated user's session
- * and makes it available for downstream middleware and controllers.
+ * 
+ * Este middleware extrai informações do tenant da sessão do usuário autenticado
+ * e as torna disponíveis para middlewares e controllers downstream.
+ * 
+ * Usa req.auth como padrão, mantendo compatibilidade com req.tenantContext.
  */
 
 /**
- * Extract tenant context from authenticated user session
+ * Extrair contexto do tenant da sessão do usuário autenticado
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
 export function tenantContext(req, res, next) {
-  // Check if user is authenticated
+  // Verifica se usuário está autenticado
   if (!req.session || !req.session.user) {
     return res.status(401).json({
       success: false,
@@ -20,9 +25,9 @@ export function tenantContext(req, res, next) {
   }
 
   const user = req.session.user;
-  
-  // For MASTER role, tenantId might not exist - this is allowed
-  // For TENANT_ADMIN and TENANT_USER roles, tenantId must exist
+
+  // Para role MASTER, tenantId pode não existir - isso é permitido
+  // Para roles TENANT_ADMIN e TENANT_USER, tenantId deve existir
   if (!user.tenantId && user.role !== 'MASTER') {
     return res.status(403).json({
       success: false,
@@ -30,14 +35,22 @@ export function tenantContext(req, res, next) {
     });
   }
 
-  // Attach tenant context to request
+  // Anexa contexto de autenticação padronizado em req.auth
+  req.auth = {
+    tenantId: user.tenantId,
+    userId: user.id,
+    role: user.role,
+    ip: getClientIp(req)
+  };
+
+  // Também anexa em req.tenantContext para compatibilidade retroativa
   req.tenantContext = {
     tenantId: user.tenantId,
     tenantName: user.tenantName,
     role: user.role
   };
 
-  // Also attach tenantId directly for backward compatibility
+  // Mantém tenantId direto para compatibilidade retroativa
   req.tenantId = user.tenantId;
 
   next();

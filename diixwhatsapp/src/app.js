@@ -167,30 +167,24 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check - Basic service health
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", service: "DiixWhatsApp" });
-});
-
-/**
- * Advanced Health Check - Verifies Database and Redis connections
- * Returns 200 OK if all services are healthy, 503 Service Unavailable otherwise
- */
-app.get("/health/advanced", async (req, res) => {
+// Health check - Advanced check for Database and Redis
+// Returns 200 if all services healthy, 503 if any fail
+app.get("/health", async (req, res) => {
   const healthStatus = {
     status: "ok",
     service: "DiixWhatsApp",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
+    environment: config.nodeEnv,
     checks: {}
   };
   
   let allHealthy = true;
   
-  // Check Database
+  // Check Database using singleton Prisma client
   try {
     await prisma.$queryRaw`SELECT 1 as connected`;
-    healthStatus.checks.database = { status: "healthy", latency: "unknown" };
+    healthStatus.checks.database = { status: "healthy" };
   } catch (error) {
     healthStatus.checks.database = { 
       status: "unhealthy", 
@@ -200,7 +194,7 @@ app.get("/health/advanced", async (req, res) => {
     logger.error("Health check DB failed", { error: error.message });
   }
   
-  // Check Redis
+  // Check Redis connection via session store client
   try {
     const redisHealthy = await checkRedisHealth();
     healthStatus.checks.redis = { 
@@ -224,8 +218,8 @@ app.get("/health/advanced", async (req, res) => {
 });
 
 /**
- * Database Health Check - Uses static prisma import to avoid race conditions
- * The prisma client is a singleton already initialized at app startup
+ * Database-only Health Check
+ * Uses the singleton Prisma client for stable verification
  */
 app.get("/health/db", async (req, res) => {
   try {

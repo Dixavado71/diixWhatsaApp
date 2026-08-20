@@ -1,50 +1,53 @@
 ```
-# Dependencies
-node_modules/
-
 # Environment variables
 .env
 .env.local
-*.env.*
+.env.*
+
+# Dependencies
+node_modules/
 
 # Logs
 *.log
 
-# IDE files
+# Editor/IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# Build artifacts
-dist/
-build/
-target/
-
-# Python cache
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
 
-# Temporary files
-*.tmp
-*.swp
-*.swo
+# Build outputs
+dist/
+build/
+target/
+coverage/
+htmlcov/
+*.egg-info/
 
-# OS generated files
+# OS generated
 .DS_Store
 Thumbs.db
 
-# Coverage reports
+# Testing
+.mypy_cache/
+.pytest_cache/
+.nyc_output/
 coverage/
-htmlcov/
-.coverage
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Compression files
+# Compressed files
 *.zip
 *.gz
 *.tar
