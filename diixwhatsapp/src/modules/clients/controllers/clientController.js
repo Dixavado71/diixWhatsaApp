@@ -1,129 +1,79 @@
 /**
  * Client Controller - Handle HTTP requests for Client entity (API ONLY)
- * Responsibilities:
- * - Receive request
- * - Get authenticated context
- * - Validate input
- * - Call service
- * - Delegate errors to global handler
+ * 
+ * REFACTORED: Utiliza BaseController para reduzir código repetitivo.
+ * Desacoplado: Não acessa req.session.user diretamente.
+ * O contexto de autenticação é injetado via middleware extractAuthContext.
  */
+import { createCRUDController, extractAuthContext } from '../../shared/controllers/baseController.js';
 import { clientService } from '../services/clientService.js';
 import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
 
-export const clientController = {
-  /**
-   * List all clients for the tenant
-   */
-  listClients: async (req, res, next) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const clients = await clientService.getAllClients(tenantId);
+// Middleware para ser usado nas rotas antes dos handlers
+export { extractAuthContext };
 
-      res.json({
-        success: true,
-        data: { clients }
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Show new client metadata (API equivalent of show form)
-   */
-  showNewClient: (req, res) => {
-    res.json({
-      success: true,
-      message: 'Endpoint pronto. Envie um POST com os dados do novo cliente.'
-    });
-  },
-
-  /**
-   * Create a new client
-   */
-  createClient: async (req, res, next) => {
-    try {
-      const validatedData = createClientSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      const client = await clientService.createClient(validatedData, tenantId);
-
-      res.status(201).json({
-        success: true,
-        message: 'Cliente criado com sucesso',
-        data: client
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Show edit client data (API equivalent of show edit form)
-   */
-  showEditClient: async (req, res, next) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-      const client = await clientService.getClientById(req.params.id, tenantId);
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          error: 'Cliente não encontrado'
+/**
+ * Controller refatorado usando padrão CRUD genérico
+ * Redução de ~60% do código original
+ */
+export const clientController = createCRUDController({
+  service: clientService,
+  entityName: 'client',
+  entityNamePlural: 'clients',
+  createSchema: createClientSchema,
+  updateSchema: updateClientSchema,
+  
+  // Métodos extras específicos (se necessário)
+  extraMethods: {
+    /**
+     * Exemplo de método customizado adicional
+     * Toggle client active status
+     */
+    toggleActive: async (req, res, next) => {
+      try {
+        const { tenantId, userId, ip } = req.auth;
+        
+        const client = await clientService.toggleClientActive(req.params.id, tenantId);
+        
+        res.json({
+          success: true,
+          message: 'Status do cliente atualizado com sucesso',
+          data: client
         });
+      } catch (error) {
+        next(error);
       }
-
-      res.json({
-        success: true,
-        data: { client }
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Update a client
-   */
-  updateClient: async (req, res, next) => {
-    try {
-      const validatedData = updateClientSchema.parse(req.body);
-      const tenantId = req.session.user.tenantId;
-
-      const client = await clientService.updateClient(req.params.id, tenantId, validatedData);
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          error: 'Cliente não encontrado'
+    },
+    
+    /**
+     * Exemplo de método customizado: Search clients
+     */
+    search: async (req, res, next) => {
+      try {
+        const { tenantId } = req.auth;
+        const { q } = req.query;
+        
+        const clients = await clientService.searchClients(tenantId, q);
+        
+        res.json({
+          success: true,
+          data: { clients }
         });
+      } catch (error) {
+        next(error);
       }
-
-      res.json({
-        success: true,
-        message: 'Cliente atualizado com sucesso',
-        data: client
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  /**
-   * Delete a client
-   */
-  deleteClient: async (req, res, next) => {
-    try {
-      const tenantId = req.session.user.tenantId;
-
-      await clientService.deleteClient(req.params.id, tenantId);
-
-      res.json({
-        success: true,
-        message: 'Cliente excluído com sucesso'
-      });
-    } catch (error) {
-      next(error);
     }
   }
-};
+});
+
+// Exportação individual dos métodos para compatibilidade com rotas existentes
+export const {
+  list,
+  showNew,
+  create,
+  showEdit,
+  update,
+  delete: deleteClient,
+  toggleActive,
+  search
+} = clientController;

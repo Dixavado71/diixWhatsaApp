@@ -70,7 +70,8 @@ typings/
 *.db
 *.sqlite
 *.sqlite3
-prisma/migrations/
+# Migrations devem ser versionadas para controle de schema
+# prisma/migrations/ - REMOVIDO: migrations agora são rastreadas
 
 # IDE
 .idea/
