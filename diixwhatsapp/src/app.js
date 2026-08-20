@@ -1,7 +1,7 @@
 import express from 'express';
-import crypto from 'crypto';
 import helmet from 'helmet';
 import cors from 'cors';
+import csurf from 'csurf';
 import { config } from './config/env.js';
 import { sessionConfig } from './config/session.js';
 import authRoutes from './routes/auth.js';
@@ -39,48 +39,64 @@ app.set('trust proxy', 1);
 // Static files (if needed for documentation)
 app.use(express.static('public'));
 
-// Body parsing
+// Body parsing - must be before csurf
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session
+// Session - MUST be before csurf as csurf uses session to store token
 app.use(sessionConfig);
 
 // Rate limiting
 app.use(generalLimiter);
 
-// CSRF protection middleware - now returns JSON for API usage
-const csrfProtection = (req, res, next) => {
-  // Skip CSRF for GET and OPTIONS requests (CORS preflight)
-  if (req.method === 'GET' || req.method === 'OPTIONS') {
+// CSRF Protection using csurf package
+// SECURITY: Replaces custom insecure implementation with battle-tested library
+// Configured for API usage (returns JSON errors instead of HTML)
+const csrfProtection = csurf({
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: config.nodeEnv === 'production'
+  }
+});
+
+// Apply CSRF protection to all routes except GET and OPTIONS
+app.use((req, res, next) => {
+  // Skip CSRF for safe methods (GET, HEAD, OPTIONS)
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
     return next();
   }
   
-  // Skip if session is not available
+  // Skip if no session (will fail gracefully for unauthenticated requests)
   if (!req.session) {
     return next();
   }
   
-  // Generate CSRF token if not present
-  if (!req.session.csrfToken) {
-    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-  }
-  
-  // Validate CSRF token on state-changing requests
-  const token = req.body._csrf || req.headers['x-csrf-token'];
-  if (token && token !== req.session.csrfToken) {
-    return res.status(403).json({ error: 'CSRF token validation failed' });
-  }
-  
-  next();
-};
+  // Apply CSRF token validation for state-changing requests
+  csrfProtection(req, res, next);
+});
 
-app.use(csrfProtection);
+// Handle CSRF errors with JSON response (API-friendly)
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({ 
+      error: 'CSRF token validation failed',
+      message: 'Token de segurança inválido. Recarregue a página e tente novamente.'
+    });
+  }
+  next(err);
+});
 
 // Make CSRF token available in response headers for API clients
+// This allows frontend to read the token and include it in subsequent requests
 app.use((req, res, next) => {
-  if (req.session.csrfToken) {
-    res.setHeader('X-CSRF-Token', req.session.csrfToken);
+  if (req.csrfToken) {
+    const token = req.csrfToken();
+    res.setHeader('X-CSRF-Token', token);
+    // Also make available for forms that might need it
+    if (req.session) {
+      req.session.csrfToken = token;
+    }
   }
   next();
 });
