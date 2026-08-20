@@ -77,7 +77,8 @@ app.use((req, res, next) => {
   }
   
   // Skip CSRF for login/logout endpoints (no valid session yet)
-  if (req.path === '/login' || req.path === '/logout') {
+  // Note: Routes are now under /api/v1/auth/*
+  if (req.path.startsWith('/api/') && (req.path.includes('/auth/login') || req.path.includes('/auth/logout'))) {
     return next();
   }
   
@@ -91,12 +92,15 @@ app.use((req, res, next) => {
 });
 
 // Handle CSRF errors with JSON response (API-friendly)
+// IMPORTANT: Must call next() after sending response to allow errorHandler to log
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).json({ 
+    res.status(403).json({ 
+      success: false,
       error: 'CSRF token validation failed',
       message: 'Token de segurança inválido. Recarregue a página e tente novamente.'
     });
+    return next(err); // Pass error to errorHandler for logging, but response already sent
   }
   next(err);
 });
