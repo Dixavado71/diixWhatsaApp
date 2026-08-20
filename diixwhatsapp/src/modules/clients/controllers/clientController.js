@@ -5,7 +5,7 @@
  * Desacoplado: Não acessa req.session.user diretamente.
  * O contexto de autenticação é injetado via middleware extractAuthContext.
  */
-import { createCRUDController, extractAuthContext } from '../../shared/controllers/baseController.js';
+import { createCRUDController, extractAuthContext } from '../../../shared/controllers/baseController.js';
 import { clientService } from '../services/clientService.js';
 import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
 
