@@ -19,6 +19,16 @@ export function asyncHandler(fn) {
  * Global Error Handler Middleware (API ONLY)
  */
 export function errorHandler(err, req, res, next) {
+  // Check if response has already been sent
+  if (res.headersSent) {
+    // If headers already sent, just log the error and skip sending response
+    logger.error('Error occurred after response sent', {
+      message: err.message,
+      stack: config.nodeEnv === 'development' ? err.stack : undefined
+    });
+    return next(err);
+  }
+
   // Log do erro para monitoramento (stack trace apenas em desenvolvimento)
   logger.error('Error occurred', {
     message: err.message,
