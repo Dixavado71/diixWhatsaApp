@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { clientController } from '../controllers/clientController.js';
+import { clientController, extractAuthContext } from '../controllers/clientController.js';
 import { requireTenant } from '../../../shared/middleware/auth.js';
 
 const router = Router();
@@ -7,12 +7,20 @@ const router = Router();
 // All client routes require tenant authentication
 router.use(requireTenant);
 
-// Clients CRUD
-router.get('/clients', clientController.listClients);
-router.get('/clients/new', clientController.showNewClient);
-router.post('/clients', clientController.createClient);
-router.get('/clients/:id/edit', clientController.showEditClient);
-router.post('/clients/:id', clientController.updateClient);
-router.post('/clients/:id/delete', clientController.deleteClient);
+// Middleware para extrair contexto de autenticação e injetar no req.auth
+// Isso desacopla o controller do acesso direto a req.session.user
+router.use(extractAuthContext);
+
+// Clients CRUD - usando métodos refatorados do BaseController
+router.get('/clients', clientController.list);
+router.get('/clients/new', clientController.showNew);
+router.post('/clients', clientController.create);
+router.get('/clients/:id/edit', clientController.showEdit);
+router.post('/clients/:id', clientController.update);
+router.post('/clients/:id/delete', clientController.delete);
+
+// Rotas extras específicas (exemplos)
+// router.post('/clients/:id/toggle-active', clientController.toggleActive);
+// router.get('/clients/search', clientController.search);
 
 export default router;
