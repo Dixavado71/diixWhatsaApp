@@ -5,7 +5,7 @@
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return JSON response
+ * - Delegate errors to global handler
  */
 import { clientService } from '../services/clientService.js';
 import { createClientSchema, updateClientSchema } from '../validators/clientValidator.js';
@@ -14,7 +14,7 @@ export const clientController = {
   /**
    * List all clients for the tenant
    */
-  listClients: async (req, res) => {
+  listClients: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
       const clients = await clientService.getAllClients(tenantId);
@@ -24,11 +24,7 @@ export const clientController = {
         data: { clients }
       });
     } catch (error) {
-      console.error('List clients error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar clientes'
-      });
+      next(error);
     }
   },
 
@@ -45,14 +41,12 @@ export const clientController = {
   /**
    * Create a new client
    */
-  createClient: async (req, res) => {
+  createClient: async (req, res, next) => {
     try {
       const validatedData = createClientSchema.parse(req.body);
       const tenantId = req.session.user.tenantId;
 
       const client = await clientService.createClient(validatedData, tenantId);
-
-      // Log creation would go here (auditLog service to be integrated)
 
       res.status(201).json({
         success: true,
@@ -60,26 +54,14 @@ export const clientController = {
         data: client
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.status(400).json({
-          success: false,
-          error: errorMessage
-        });
-      }
-
-      console.error('Create client error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao criar cliente'
-      });
+      next(error);
     }
   },
 
   /**
    * Show edit client data (API equivalent of show edit form)
    */
-  showEditClient: async (req, res) => {
+  showEditClient: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
       const client = await clientService.getClientById(req.params.id, tenantId);
@@ -96,18 +78,14 @@ export const clientController = {
         data: { client }
       });
     } catch (error) {
-      console.error('Show edit client error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar dados do cliente'
-      });
+      next(error);
     }
   },
 
   /**
    * Update a client
    */
-  updateClient: async (req, res) => {
+  updateClient: async (req, res, next) => {
     try {
       const validatedData = updateClientSchema.parse(req.body);
       const tenantId = req.session.user.tenantId;
@@ -121,51 +99,31 @@ export const clientController = {
         });
       }
 
-      // Log update would go here
-
       res.json({
         success: true,
         message: 'Cliente atualizado com sucesso',
         data: client
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.status(400).json({
-          success: false,
-          error: errorMessage
-        });
-      }
-
-      console.error('Update client error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao atualizar cliente'
-      });
+      next(error);
     }
   },
 
   /**
    * Delete a client
    */
-  deleteClient: async (req, res) => {
+  deleteClient: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
 
       await clientService.deleteClient(req.params.id, tenantId);
-
-      // Log deletion would go here
 
       res.json({
         success: true,
         message: 'Cliente excluído com sucesso'
       });
     } catch (error) {
-      console.error('Delete client error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao excluir cliente'
-      });
+      next(error);
     }
   }
 };

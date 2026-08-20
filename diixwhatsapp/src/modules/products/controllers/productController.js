@@ -5,7 +5,7 @@
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return JSON response
+ * - Delegate errors to global handler
  */
 import { productService } from '../services/productService.js';
 import { createProductSchema, updateProductSchema } from '../validators/productValidator.js';
@@ -14,7 +14,7 @@ export const productController = {
   /**
    * List all products for the tenant
    */
-  listProducts: async (req, res) => {
+  listProducts: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
       const products = await productService.getAllProducts(tenantId);
@@ -24,11 +24,7 @@ export const productController = {
         data: { products }
       });
     } catch (error) {
-      console.error('List products error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar produtos'
-      });
+      next(error);
     }
   },
 
@@ -45,14 +41,16 @@ export const productController = {
   /**
    * Create a new product
    */
-  createProduct: async (req, res) => {
+  createProduct: async (req, res, next) => {
     try {
       const validatedData = createProductSchema.parse(req.body);
       const tenantId = req.session.user.tenantId;
+      
+      // Dados necessários para o Service (Auditoria)
+      const adminUserId = req.session.user.id;
+      const ip = req.ip || req.connection.remoteAddress;
 
-      const product = await productService.createProduct(validatedData, tenantId);
-
-      // Log creation would go here (auditLog service to be integrated)
+      const product = await productService.createProduct(validatedData, tenantId, adminUserId, ip);
 
       res.status(201).json({
         success: true,
@@ -60,68 +58,43 @@ export const productController = {
         data: product
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.status(400).json({
-          success: false,
-          error: errorMessage
-        });
-      }
-
-      console.error('Create product error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao criar produto'
-      });
+      next(error);
     }
   },
 
   /**
    * Show edit product data (API equivalent of show edit form)
    */
-  showEditProduct: async (req, res) => {
+  showEditProduct: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
+      
+      // O service já lança erro se não encontrar, delegando ao global handler
       const product = await productService.getProductById(req.params.id, tenantId);
-
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          error: 'Produto não encontrado'
-        });
-      }
 
       res.json({
         success: true,
         data: { product }
       });
     } catch (error) {
-      console.error('Show edit product error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar dados do produto'
-      });
+      next(error);
     }
   },
 
   /**
    * Update a product
    */
-  updateProduct: async (req, res) => {
+  updateProduct: async (req, res, next) => {
     try {
       const validatedData = updateProductSchema.parse(req.body);
       const tenantId = req.session.user.tenantId;
+      
+      // Dados necessários para o Service (Auditoria)
+      const adminUserId = req.session.user.id;
+      const ip = req.ip || req.connection.remoteAddress;
 
-      const product = await productService.updateProduct(req.params.id, tenantId, validatedData);
-
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          error: 'Produto não encontrado'
-        });
-      }
-
-      // Log update would go here
+      // O service já verifica a existência e lança erro se necessário
+      const product = await productService.updateProduct(req.params.id, tenantId, validatedData, adminUserId, ip);
 
       res.json({
         success: true,
@@ -129,43 +102,29 @@ export const productController = {
         data: product
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        const errorMessage = error.errors[0]?.message || 'Dados inválidos';
-        return res.status(400).json({
-          success: false,
-          error: errorMessage
-        });
-      }
-
-      console.error('Update product error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao atualizar produto'
-      });
+      next(error);
     }
   },
 
   /**
    * Delete a product
    */
-  deleteProduct: async (req, res) => {
+  deleteProduct: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
+      
+      // Dados necessários para o Service (Auditoria)
+      const adminUserId = req.session.user.id;
+      const ip = req.ip || req.connection.remoteAddress;
 
-      await productService.deleteProduct(req.params.id, tenantId);
-
-      // Log deletion would go here
+      await productService.deleteProduct(req.params.id, tenantId, adminUserId, ip);
 
       res.json({
         success: true,
         message: 'Produto excluído com sucesso'
       });
     } catch (error) {
-      console.error('Delete product error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao excluir produto'
-      });
+      next(error);
     }
   }
 };

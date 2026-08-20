@@ -5,7 +5,7 @@
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return JSON response
+ * - Delegate errors to global handler
  */
 import { serviceService } from '../services/serviceService.js';
 import { createServiceSchema, updateServiceSchema } from '../validators/serviceValidator.js';
@@ -14,12 +14,11 @@ export const serviceController = {
   /**
    * List all services for the authenticated tenant
    */
-  listServices: async (req, res) => {
+  listServices: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
-      
-      // Extract filters from query params
       const filters = {};
+      
       if (req.query.active !== undefined) {
         filters.active = req.query.active === 'true';
       }
@@ -31,11 +30,7 @@ export const serviceController = {
         data: { services }
       });
     } catch (error) {
-      console.error('List services error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar serviços'
-      });
+      next(error); // Delegado ao errorHandler global
     }
   },
 
@@ -52,11 +47,9 @@ export const serviceController = {
   /**
    * Create a new service
    */
-  createService: async (req, res) => {
+  createService: async (req, res, next) => {
     try {
       const validatedData = createServiceSchema.parse(req.body);
-      
-      // Get tenantId from authenticated user context - NEVER trust body
       const tenantId = req.session.user.tenantId;
       
       const service = await serviceService.createService(tenantId, validatedData);
@@ -67,25 +60,14 @@ export const serviceController = {
         data: service
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({
-          success: false,
-          error: error.errors.map(e => e.message).join(', ')
-        });
-      }
-      
-      console.error('Create service error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao criar serviço'
-      });
+      next(error); // O middleware global captura e formata o ZodError automaticamente
     }
   },
 
   /**
    * Show edit service data (API equivalent of show edit form)
    */
-  showEditService: async (req, res) => {
+  showEditService: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
       const service = await serviceService.getServiceById(req.params.id, tenantId);
@@ -102,22 +84,16 @@ export const serviceController = {
         data: { service }
       });
     } catch (error) {
-      console.error('Show edit service error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar dados do serviço'
-      });
+      next(error);
     }
   },
 
   /**
    * Update an existing service
    */
-  updateService: async (req, res) => {
+  updateService: async (req, res, next) => {
     try {
       const validatedData = updateServiceSchema.parse(req.body);
-      
-      // Get tenantId from authenticated user context - NEVER trust body
       const tenantId = req.session.user.tenantId;
       
       const service = await serviceService.updateService(req.params.id, tenantId, validatedData);
@@ -135,25 +111,14 @@ export const serviceController = {
         data: service
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({
-          success: false,
-          error: error.errors.map(e => e.message).join(', ')
-        });
-      }
-      
-      console.error('Update service error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao atualizar serviço'
-      });
+      next(error);
     }
   },
 
   /**
    * Delete a service
    */
-  deleteService: async (req, res) => {
+  deleteService: async (req, res, next) => {
     try {
       const tenantId = req.session.user.tenantId;
       
@@ -164,11 +129,7 @@ export const serviceController = {
         message: 'Serviço excluído com sucesso'
       });
     } catch (error) {
-      console.error('Delete service error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao excluir serviço'
-      });
+      next(error);
     }
   }
 };

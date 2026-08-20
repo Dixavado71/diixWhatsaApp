@@ -5,16 +5,17 @@
  * - Get authenticated context
  * - Validate input
  * - Call service
- * - Return JSON response
+ * - Delegate errors to global handler
  */
 import { userService } from '../services/userService.js';
+import { tenantService } from '../../tenants/services/tenantService.js'; // Import estático seguro
 import { createUserSchema, updateUserSchema } from '../validators/userValidator.js';
 
 export const userController = {
   /**
    * List all users
    */
-  listUsers: async (req, res) => {
+  listUsers: async (req, res, next) => {
     try {
       const users = await userService.getAllUsers({});
       
@@ -23,21 +24,16 @@ export const userController = {
         data: { users }
       });
     } catch (error) {
-      console.error('List users error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar usuários'
-      });
+      next(error); // Delegado ao errorHandler global
     }
   },
 
   /**
    * Get metadata for creating a new user (returns active tenants for dropdown)
    */
-  showNewUser: async (req, res) => {
+  showNewUser: async (req, res, next) => {
     try {
-      // Import tenantService dynamically to avoid circular dependency
-      const { tenantService } = await import('../../tenants/services/tenantService.js');
+      // Import estático resolve a necessidade do dynamic import anterior
       const tenants = await tenantService.getAllTenants({ active: true });
       
       res.json({
@@ -45,19 +41,16 @@ export const userController = {
         data: { tenants }
       });
     } catch (error) {
-      console.error('Show new user error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar dados para o formulário'
-      });
+      next(error);
     }
   },
 
   /**
    * Create new user
    */
-  createUser: async (req, res) => {
+  createUser: async (req, res, next) => {
     try {
+      // Se falhar, o Zod lança ZodError, que será capturado automaticamente pelo catch abaixo
       const validatedData = createUserSchema.parse(req.body);
       const adminUserId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
@@ -70,25 +63,14 @@ export const userController = {
         data: newUser
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({
-          success: false,
-          error: error.errors[0]?.message || 'Dados inválidos'
-        });
-      }
-
-      console.error('Create user error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao criar usuário'
-      });
+      next(error); // O middleware global agora trata o ZodError e outros erros
     }
   },
 
   /**
    * Get user data and active tenants for editing
    */
-  showEditUser: async (req, res) => {
+  showEditUser: async (req, res, next) => {
     try {
       const user = await userService.getUserById(req.params.id);
       
@@ -99,7 +81,6 @@ export const userController = {
         });
       }
 
-      const { tenantService } = await import('../../tenants/services/tenantService.js');
       const tenants = await tenantService.getAllTenants({ active: true });
       
       res.json({
@@ -107,18 +88,14 @@ export const userController = {
         data: { user, tenants }
       });
     } catch (error) {
-      console.error('Show edit user error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Erro ao carregar dados do usuário'
-      });
+      next(error);
     }
   },
 
   /**
    * Update user
    */
-  updateUser: async (req, res) => {
+  updateUser: async (req, res, next) => {
     try {
       const validatedData = updateUserSchema.parse(req.body);
       const userId = req.session.user.id;
@@ -131,25 +108,14 @@ export const userController = {
         message: 'Usuário atualizado com sucesso'
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({
-          success: false,
-          error: error.errors[0]?.message || 'Dados inválidos'
-        });
-      }
-
-      console.error('Update user error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao atualizar usuário'
-      });
+      next(error);
     }
   },
 
   /**
    * Delete user
    */
-  deleteUser: async (req, res) => {
+  deleteUser: async (req, res, next) => {
     try {
       const userId = req.session.user.id;
       const ip = req.ip || req.connection.remoteAddress;
@@ -161,11 +127,7 @@ export const userController = {
         message: 'Usuário excluído com sucesso'
       });
     } catch (error) {
-      console.error('Delete user error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Erro ao excluir usuário'
-      });
+      next(error);
     }
   }
 };

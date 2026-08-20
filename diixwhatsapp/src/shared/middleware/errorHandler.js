@@ -1,63 +1,74 @@
 import { Prisma } from '@prisma/client';
+import { ZodError } from 'zod'; // Importação adicionada para capturar erros de validação
 import { logger } from '../../infrastructure/database/prismaClient.js';
 import { config } from '../../config/env.js';
 
 /**
- * Error Handler Middleware
+ * Global Error Handler Middleware (API ONLY)
  */
 export function errorHandler(err, req, res, next) {
-  // Log the error
+  // Log do erro para monitoramento (stack trace apenas em desenvolvimento)
   logger.error('Error occurred', {
     message: err.message,
-    stack: err.stack,
+    stack: config.nodeEnv === 'development' ? err.stack : undefined,
     url: req.url,
     method: req.method
   });
 
-  // Don't expose internal errors in production
   const isDev = config.nodeEnv === 'development';
 
-  // Handle Prisma errors
+  // 1. Tratamento de Erros de Validação (Zod) - ADICIONADO
+  if (err instanceof ZodError) {
+    const errorMessage = err.errors.map(e => e.message).join(', ') || 'Dados inválidos';
+    return res.status(400).json({
+      success: false,
+      error: 'Erro de Validação',
+      details: errorMessage
+    });
+  }
+
+  // 2. Tratamento de Erros do Prisma
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
-      case 'P2002': // Unique constraint violation
+      case 'P2002': // Violação de unicidade
         return res.status(409).json({
+          success: false,
           error: 'Conflito',
-          message: 'Já existe um registro com estes dados.',
-          details: isDev ? err.message : undefined
+          details: 'Já existe um registro com estes dados.'
         });
-      case 'P2003': // Foreign key constraint violation
+      case 'P2003': // Violação de chave estrangeira
         return res.status(400).json({
+          success: false,
           error: 'Erro de Referência',
-          message: 'Este registro está sendo utilizado em outro lugar.',
-          details: isDev ? err.message : undefined
+          details: 'Este registro está sendo utilizado em outro lugar.'
         });
-      case 'P2025': // Record not found
+      case 'P2025': // Registro não encontrado
         return res.status(404).json({
+          success: false,
           error: 'Não Encontrado',
-          message: 'Registro não encontrado.',
-          details: isDev ? err.message : undefined
+          details: 'O registro solicitado não existe.'
         });
       default:
-        logger.db.error('Prisma error', err.code, err);
+        // Corrigido: usa logger.error genérico para evitar crash se logger.db não existir
+        logger.error('Prisma error', { code: err.code, message: err.message });
         break;
     }
   }
 
-  // Handle JSON parse errors
+  // 3. Tratamento de Erros de Parse de JSON
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({
+      success: false,
       error: 'Requisição Inválida',
-      message: 'Dados enviados em formato inválido.',
-      details: isDev ? err.message : undefined
+      details: 'Dados enviados em formato JSON inválido.'
     });
   }
 
-  // Default to 500
+  // 4. Erro Padrão (Fallback para 500)
   res.status(err.status || 500).json({
+    success: false,
     error: 'Erro Interno',
-    message: isDev ? err.message : 'Ocorreu um erro interno. Por favor, tente novamente.',
-    details: isDev ? err.stack : undefined
+    details: isDev ? err.message : 'Ocorreu um erro interno. Por favor, tente novamente.'
   });
 }
 
@@ -66,7 +77,8 @@ export function errorHandler(err, req, res, next) {
  */
 export function notFoundHandler(req, res, next) {
   res.status(404).json({
+    success: false,
     error: 'Página Não Encontrada',
-    message: 'A página que você está procurando não foi encontrada.'
+    details: 'A rota que você está procurando não foi encontrada.'
   });
 }
