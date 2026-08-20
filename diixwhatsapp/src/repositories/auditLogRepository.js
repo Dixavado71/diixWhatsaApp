@@ -1,4 +1,4 @@
-import { prisma } from '../infrastructure/database/prismaClient.js';
+import { prisma, logger } from '../infrastructure/database/prismaClient.js';
 
 /**
  * Audit Log Repository - Data access layer for AuditLog entity
@@ -20,7 +20,7 @@ export const auditLogRepository = {
           resolve({ success: true });
         } catch (error) {
           // Log error but don't throw - audit logging should not break main flow
-          console.error('[AuditLog] Failed to create log entry:', error.message);
+          logger.error({ error: error.message, data }, '[AuditLog] Failed to create log entry');
           resolve({ success: false, error: error.message });
         }
       });

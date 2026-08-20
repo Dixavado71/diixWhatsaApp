@@ -2,40 +2,43 @@
  * User Controller - HTTP layer for User operations (API ONLY)
  * Responsibilities:
  * - Receive request
- * - Get authenticated context
+ * - Get authenticated context from req.auth (injected by extractAuthContext middleware)
  * - Validate input
- * - Call service
+ * - Call service with userContext for tenant isolation
  * - Delegate errors to global handler
  */
 import { userService } from '../services/userService.js';
-import { tenantService } from '../../tenants/services/tenantService.js'; // Import estático seguro
+import { tenantService } from '../../tenants/services/tenantService.js';
 import { createUserSchema, updateUserSchema } from '../validators/userValidator.js';
 
 export const userController = {
   /**
    * List all users
+   * MASTER: Sees all users
+   * TENANT_ADMIN: Sees only users from their tenant
    */
   listUsers: async (req, res, next) => {
     try {
-      const users = await userService.getAllUsers({});
-      
+      const users = await userService.getAllUsers({}, req.auth);
+
       res.json({
         success: true,
         data: { users }
       });
     } catch (error) {
-      next(error); // Delegado ao errorHandler global
+      next(error);
     }
   },
 
   /**
    * Get metadata for creating a new user (returns active tenants for dropdown)
+   * MASTER: Sees all tenants
+   * TENANT_ADMIN: Only sees their own tenant info
    */
   showNewUser: async (req, res, next) => {
     try {
-      // Import estático resolve a necessidade do dynamic import anterior
       const tenants = await tenantService.getAllTenants({ active: true });
-      
+
       res.json({
         success: true,
         data: { tenants }
@@ -47,15 +50,16 @@ export const userController = {
 
   /**
    * Create new user
+   * MASTER: Can create users for any tenant
+   * TENANT_ADMIN: Can only create users for their own tenant
    */
   createUser: async (req, res, next) => {
     try {
-      // Se falhar, o Zod lança ZodError, que será capturado automaticamente pelo catch abaixo
       const validatedData = createUserSchema.parse(req.body);
-      const adminUserId = req.session.user.id;
-      const ip = req.ip || req.connection.remoteAddress;
-      
-      const newUser = await userService.createUser(validatedData, adminUserId, ip);
+      const adminUserId = req.auth.userId;
+      const ip = req.auth.ip;
+
+      const newUser = await userService.createUser(validatedData, adminUserId, ip, req.auth);
 
       res.status(201).json({
         success: true,
@@ -63,17 +67,19 @@ export const userController = {
         data: newUser
       });
     } catch (error) {
-      next(error); // O middleware global agora trata o ZodError e outros erros
+      next(error);
     }
   },
 
   /**
    * Get user data and active tenants for editing
+   * MASTER: Can edit any user
+   * TENANT_ADMIN: Can only edit users from their tenant
    */
   showEditUser: async (req, res, next) => {
     try {
-      const user = await userService.getUserById(req.params.id);
-      
+      const user = await userService.getUserById(req.params.id, req.auth);
+
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -82,7 +88,7 @@ export const userController = {
       }
 
       const tenants = await tenantService.getAllTenants({ active: true });
-      
+
       res.json({
         success: true,
         data: { user, tenants }
@@ -94,14 +100,16 @@ export const userController = {
 
   /**
    * Update user
+   * MASTER: Can update any user
+   * TENANT_ADMIN: Can only update users from their tenant
    */
   updateUser: async (req, res, next) => {
     try {
       const validatedData = updateUserSchema.parse(req.body);
-      const userId = req.session.user.id;
-      const ip = req.ip || req.connection.remoteAddress;
+      const adminUserId = req.auth.userId;
+      const ip = req.auth.ip;
 
-      await userService.updateUser(req.params.id, validatedData, userId, ip);
+      await userService.updateUser(req.params.id, validatedData, adminUserId, ip, req.auth);
 
       res.json({
         success: true,
@@ -114,13 +122,15 @@ export const userController = {
 
   /**
    * Delete user
+   * MASTER: Can delete any user
+   * TENANT_ADMIN: Can only delete users from their tenant
    */
   deleteUser: async (req, res, next) => {
     try {
-      const userId = req.session.user.id;
-      const ip = req.ip || req.connection.remoteAddress;
+      const adminUserId = req.auth.userId;
+      const ip = req.auth.ip;
 
-      await userService.deleteUser(req.params.id, userId, ip);
+      await userService.deleteUser(req.params.id, adminUserId, ip, req.auth);
 
       res.json({
         success: true,
