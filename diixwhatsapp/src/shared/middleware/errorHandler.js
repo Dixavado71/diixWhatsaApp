@@ -1,7 +1,19 @@
 import { Prisma } from '@prisma/client';
-import { ZodError } from 'zod'; // Importação adicionada para capturar erros de validação
+import { ZodError } from 'zod';
 import { logger } from '../../infrastructure/database/prismaClient.js';
 import { config } from '../../config/env.js';
+
+/**
+ * Async Handler Wrapper - Wraps async controller functions to catch errors
+ * and forward them to Express error handling middleware
+ * @param {Function} fn - Async controller function
+ * @returns {Function} Express middleware function
+ */
+export function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
 /**
  * Global Error Handler Middleware (API ONLY)
@@ -17,7 +29,7 @@ export function errorHandler(err, req, res, next) {
 
   const isDev = config.nodeEnv === 'development';
 
-  // 1. Tratamento de Erros de Validação (Zod) - ADICIONADO
+  // 1. Tratamento de Erros de Validação (Zod)
   if (err instanceof ZodError) {
     const errorMessage = err.errors.map(e => e.message).join(', ') || 'Dados inválidos';
     return res.status(400).json({
@@ -49,7 +61,6 @@ export function errorHandler(err, req, res, next) {
           details: 'O registro solicitado não existe.'
         });
       default:
-        // Corrigido: usa logger.error genérico para evitar crash se logger.db não existir
         logger.error('Prisma error', { code: err.code, message: err.message });
         break;
     }

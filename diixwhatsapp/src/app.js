@@ -12,9 +12,10 @@ import promotionRoutes from './modules/promotions/routes/promotionRoutes.js';
 import tenantRoutes from './modules/tenants/routes/tenantRoutes.js';
 import productRoutes from './modules/products/routes/productRoutes.js';
 import userRoutes from './modules/users/routes/userRoutes.js';
-import { errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
+import { asyncHandler, errorHandler, notFoundHandler } from './shared/middleware/errorHandler.js';
 import { optionalAuth } from './shared/middleware/auth.js';
 import { generalLimiter } from './shared/middleware/rateLimiter.js';
+import { prisma, logger } from './infrastructure/database/prismaClient.js';
 
 const app = express();
 
@@ -163,13 +164,26 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'DiixWhatsApp' });
 });
 
+/**
+ * Database Health Check - Uses static prisma import to avoid race conditions
+ * The prisma client is a singleton already initialized at app startup
+ */
 app.get('/health/db', async (req, res) => {
   try {
-    const { prisma } = await import('./infrastructure/database/prismaClient.js');
-    await prisma.$queryRaw`SELECT 1`;
+    // Direct use of the singleton prisma instance (already initialized via static import)
+    // No dynamic import needed - avoids race conditions
+    await prisma.$queryRaw`SELECT 1 as connected`;
+    
     res.json({ status: 'ok', database: 'connected' });
   } catch (error) {
-    res.status(500).json({ status: 'error', database: 'disconnected', error: error.message });
+    // Log error using pino logger
+    logger.error('Health check DB failed', { error: error.message });
+    
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected', 
+      error: error.message 
+    });
   }
 });
 

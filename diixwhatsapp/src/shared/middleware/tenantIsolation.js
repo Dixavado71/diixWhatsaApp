@@ -1,10 +1,12 @@
 /**
  * Tenant Isolation Middleware - Ensure tenant can only access their own data
+ * MASTER role bypasses all tenant isolation checks
  */
 
 /**
  * Inject tenantId into request and validate it exists
  * This middleware should be used after authentication for tenant users
+ * MASTER role bypasses tenant validation
  */
 export function injectTenantId(req, res, next) {
   if (!req.session || !req.session.user) {
@@ -14,10 +16,17 @@ export function injectTenantId(req, res, next) {
     });
   }
 
-  const { tenantId } = req.session.user;
+  const { tenantId, role } = req.session.user;
 
-  // For MASTER role, tenantId might not exist
-  if (!tenantId && req.session.user.role !== 'MASTER') {
+  // MASTER role bypasses tenant isolation
+  if (role === 'MASTER') {
+    req.tenantId = null;
+    req.isMaster = true;
+    return next();
+  }
+
+  // For non-MASTER roles, tenantId must exist
+  if (!tenantId) {
     return res.status(403).json({
       success: false,
       error: 'Usuário não pertence a nenhum tenant'
@@ -26,6 +35,44 @@ export function injectTenantId(req, res, next) {
 
   // Attach tenantId to request for use in controllers/repositories
   req.tenantId = tenantId;
+  req.isMaster = false;
+  next();
+}
+
+/**
+ * Tenant Isolation Middleware for User Management
+ * - MASTER: Can manage all users across all tenants (no filtering)
+ * - TENANT_ADMIN: Can manage only users within their own tenantId
+ */
+export function tenantIsolation(req, res, next) {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Não autenticado'
+    });
+  }
+
+  const { tenantId, role } = req.session.user;
+
+  // MASTER role bypasses tenant isolation - can access all tenants
+  if (role === 'MASTER') {
+    req.queryFilter = {}; // No tenant filtering for MASTER
+    req.canAccessAllTenants = true;
+    return next();
+  }
+
+  // TENANT_ADMIN and TENANT_USER can only access their own tenant
+  if (!tenantId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Acesso negado: tenant não identificado'
+    });
+  }
+
+  // Attach tenant filter for downstream controllers/repositories
+  req.queryFilter = { tenantId };
+  req.canAccessAllTenants = false;
+
   next();
 }
 
@@ -100,6 +147,7 @@ export function requireTenantContext(req, res, next) {
 
 export default { 
   injectTenantId, 
+  tenantIsolation,
   validateTenantOwnership, 
   requireTenantContext 
 };
